@@ -1,7 +1,6 @@
 import { getStore } from "@netlify/blobs";
 import { citationUrls, collectDocuments, confirmUrls, messageText } from "./feeds.js";
 import {
-  INTERVAL_MS,
   buildReport,
   canonicalUrl,
   dateId,
@@ -148,7 +147,7 @@ export async function runUpdate(now = new Date()) {
       titles: history.flatMap((report) => (report.items || []).map((item) => item.title)),
       documents: packet.documents,
       search: packet.search,
-      fromLabel: longLabel(romeParts(from)),
+      fromLabel: longLabel(romeParts(new Date(start))),
       toLabel: longLabel(today),
       year: today.year,
     });

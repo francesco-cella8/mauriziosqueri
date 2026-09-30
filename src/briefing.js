@@ -82,32 +82,38 @@ function renderReport(report, reports, preview) {
   const banner = preview
     ? `<p class="briefing-preview">Anteprima. I testi sono di esempio, in attesa del primo controllo.</p>`
     : "";
+  const quiet = report.status === "invariato" ? " is-quiet" : "";
 
   return `${banner}
-    <p class="briefing-kicker">Resoconto</p>
-    <div class="briefing-heading">
-      <h2 id="briefing-title">${escapeHtml(report.dateLabel)}</h2>
-      <p>${escapeHtml(status)}</p>
-    </div>
-    <p class="briefing-next">Prossimo controllo: ${escapeHtml(report.nextLabel)}</p>
-    <div class="briefing-dates">
-      <p>Resoconti</p>
-      ${reports
-        .map(
-          (entry) => `<button type="button" data-briefing="${escapeHtml(entry.id)}" aria-pressed="${entry.id === report.id ? "true" : "false"}">${escapeHtml(entry.shortLabel)}</button>`
-        )
-        .join("")}
-    </div>
-    ${itemsMarkup}
-    <section class="briefing-sources">
-      <h3>Fonti verificate</h3>
-      <ul>${report.sources
-        .map(
-          (source) =>
-            `<li><a href="${escapeHtml(source.href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.label)}</a></li>`
-        )
-        .join("")}</ul>
-    </section>`;
+    <div class="briefing-layout">
+      <aside class="briefing-rail">
+        <p class="briefing-kicker">Resoconti</p>
+        <div class="briefing-dates">
+          ${reports
+            .map(
+              (entry) => `<button type="button" data-briefing="${escapeHtml(entry.id)}" aria-pressed="${entry.id === report.id ? "true" : "false"}">${escapeHtml(entry.shortLabel)}</button>`
+            )
+            .join("")}
+        </div>
+        <p class="briefing-next">Prossimo controllo <strong>${escapeHtml(report.nextLabel)}</strong></p>
+      </aside>
+      <div class="briefing-main">
+        <div class="briefing-heading">
+          <h2 id="briefing-title">${escapeHtml(report.dateLabel)}</h2>
+          <p class="briefing-status${quiet}">${escapeHtml(status)}</p>
+        </div>
+        ${itemsMarkup}
+        <section class="briefing-sources">
+          <h3>Fonti verificate</h3>
+          <ul>${report.sources
+            .map(
+              (source) =>
+                `<li><a href="${escapeHtml(source.href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.label)}</a></li>`
+            )
+            .join("")}</ul>
+        </section>
+      </div>
+    </div>`;
 }
 
 export function mountBriefing({ beforeOpen } = {}) {

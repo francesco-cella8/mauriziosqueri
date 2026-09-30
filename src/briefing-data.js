@@ -1,4 +1,15 @@
 /** Resoconti di esempio. Il controllo automatico li sostituirà con lo stesso formato. */
+
+const sources = [
+  { label: "Agenzia delle Entrate", href: "https://www.agenziaentrate.gov.it/portale/" },
+  { label: "FiscoOggi", href: "https://www.fiscooggi.it/" },
+  { label: "Gazzetta Ufficiale", href: "https://www.gazzettaufficiale.it/" },
+  { label: "Dipartimento delle Finanze", href: "https://www.finanze.gov.it/it/" },
+  { label: "MEF", href: "https://www.mef.gov.it/" },
+  { label: "INPS", href: "https://www.inps.it/" },
+  { label: "Agenzia delle Entrate-Riscossione", href: "https://www.agenziaentrateriscossione.gov.it/" },
+];
+
 export const briefings = [
   {
     id: "2026-09-30",
@@ -78,14 +89,7 @@ export const briefings = [
         ],
       },
     ],
-    sources: [
-      { label: "Agenzia delle Entrate", href: "https://www.agenziaentrate.gov.it/portale/" },
-      { label: "FiscoOggi", href: "https://www.fiscooggi.it/" },
-      { label: "Gazzetta Ufficiale", href: "https://www.gazzettaufficiale.it/" },
-      { label: "MEF", href: "https://www.mef.gov.it/" },
-      { label: "Normattiva", href: "https://www.normattiva.it/" },
-      { label: "INPS", href: "https://www.inps.it/" },
-    ],
+    sources,
   },
   {
     id: "2026-09-27",
@@ -97,14 +101,7 @@ export const briefings = [
       "Nessuna novità. Il controllo del 27 settembre ha riletto le stesse fonti del 24 settembre e non ha trovato segnalazioni diverse. Quelle già uscite non vengono riscritte.",
     omitted: null,
     items: [],
-    sources: [
-      { label: "Agenzia delle Entrate", href: "https://www.agenziaentrate.gov.it/portale/" },
-      { label: "FiscoOggi", href: "https://www.fiscooggi.it/" },
-      { label: "Gazzetta Ufficiale", href: "https://www.gazzettaufficiale.it/" },
-      { label: "MEF", href: "https://www.mef.gov.it/" },
-      { label: "Normattiva", href: "https://www.normattiva.it/" },
-      { label: "INPS", href: "https://www.inps.it/" },
-    ],
+    sources,
   },
   {
     id: "2026-09-24",
@@ -149,11 +146,6 @@ export const briefings = [
         ],
       },
     ],
-    sources: [
-      { label: "Agenzia delle Entrate", href: "https://www.agenziaentrate.gov.it/portale/" },
-      { label: "FiscoOggi", href: "https://www.fiscooggi.it/" },
-      { label: "Gazzetta Ufficiale", href: "https://www.gazzettaufficiale.it/" },
-      { label: "Normattiva", href: "https://www.normattiva.it/" },
-    ],
+    sources,
   },
 ];

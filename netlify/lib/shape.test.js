@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildReport, hostAllowed, isCurrent, needsAnotherPass, shouldRun } from "./shape.js";
+import { buildReport, canonicalUrl, hostAllowed, isCurrent, needsAnotherPass, shouldRun, specificPage } from "./shape.js";
 
 test("un controllo recente non riparte", () => {
   const now = Date.parse("2026-10-02T05:00:00.000Z");
@@ -78,6 +78,65 @@ test("se resta solo materiale già noto, il resoconto dice che non c'è nulla di
   assert.equal(report.items.length, 0);
   assert.match(report.recap, /Nessuna novità/);
   assert.equal(report.sources.length > 0, true);
+});
+
+test("una home non è una pagina di novità", () => {
+  const report = buildReport(
+    {
+      status: "novita",
+      recap: "Manca il documento.",
+      items: [
+        {
+          title: "Comunicato senza pagina",
+          area: "Controlli",
+          audience: "Per i clienti",
+          recap: "Il testo non indica un documento.",
+          links: [{ label: "Agenzia", href: "https://www.agenziaentrate.gov.it/portale/" }],
+        },
+      ],
+    },
+    { now: new Date("2026-10-03T08:00:00.000Z") }
+  );
+
+  assert.equal(specificPage("https://www.agenziaentrate.gov.it/portale/"), false);
+  assert.equal(report.items.length, 0);
+  assert.equal(report.status, "invariato");
+});
+
+test("tiene solo gli URL raccolti e non ripete una pagina già uscita", () => {
+  const href = "https://www.fiscooggi.it/portale/rubrica/lipe";
+  const key = canonicalUrl(href);
+  const report = buildReport(
+    {
+      status: "novita",
+      recap: "Due pagine, una già uscita.",
+      items: [
+        {
+          title: "Pagina già pubblicata",
+          area: "IVA",
+          audience: "Per lo studio",
+          recap: "Stesso documento.",
+          links: [{ label: "FiscoOggi", href }],
+        },
+        {
+          title: "Url non raccolto",
+          area: "IVA",
+          audience: "Per lo studio",
+          recap: "Non risulta tra le pagine lette.",
+          links: [{ label: "FiscoOggi", href: "https://www.fiscooggi.it/portale/rubrica/altra" }],
+        },
+      ],
+    },
+    {
+      knownHrefs: new Set([key]),
+      seen: new Set([key]),
+      now: new Date("2026-10-03T08:00:00.000Z"),
+      previousLabel: "30 settembre 2026",
+    }
+  );
+
+  assert.equal(report.items.length, 0);
+  assert.equal(report.omitted.count, 1);
 });
 
 test("una regola del 2024 non conta come novità del 2026", () => {
