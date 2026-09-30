@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildReport, hostAllowed, shouldRun } from "./shape.js";
+import { buildReport, hostAllowed, isCurrent, needsAnotherPass, shouldRun } from "./shape.js";
 
 test("un controllo recente non riparte", () => {
   const now = Date.parse("2026-10-02T05:00:00.000Z");
@@ -78,4 +78,50 @@ test("se resta solo materiale già noto, il resoconto dice che non c'è nulla di
   assert.equal(report.items.length, 0);
   assert.match(report.recap, /Nessuna novità/);
   assert.equal(report.sources.length > 0, true);
+});
+
+test("una regola del 2024 non conta come novità del 2026", () => {
+  const now = new Date("2026-09-30T18:00:00.000Z");
+  const report = buildReport(
+    {
+      status: "novita",
+      recap: "Dal 1° settembre 2024 cambia la sanzione.",
+      items: [
+        {
+          title: "Nuove sanzioni dal 1° settembre 2024",
+          area: "Controlli",
+          audience: "Per i clienti",
+          recap: "La sanzione è del 25% dal 2024.",
+          links: [{ label: "Agenzia", href: "https://www.agenziaentrate.gov.it/portale/novita/sanzioni" }],
+        },
+        {
+          title: "Scadenza del 30 settembre 2026",
+          area: "Scadenze",
+          audience: "Per i clienti",
+          recap: "Il modello 730 si presenta entro il 30 settembre 2026.",
+          links: [{ label: "Agenzia", href: "https://www.agenziaentrate.gov.it/portale/novita/730" }],
+        },
+      ],
+      sources: [{ label: "Agenzia", href: "https://www.agenziaentrate.gov.it/portale/novita" }],
+    },
+    { known: new Set(), now }
+  );
+
+  assert.equal(isCurrent("sanzione dal 2024", now), false);
+  assert.equal(report.items.length, 1);
+  assert.equal(report.items[0].title, "Scadenza del 30 settembre 2026");
+  assert.equal(
+    needsAnotherPass(
+      {
+        briefings: [
+          {
+            recap: "Dal 2024",
+            items: [{ title: "Sanzioni 2024", recap: "Vecchia regola" }],
+          },
+        ],
+      },
+      now
+    ),
+    true
+  );
 });

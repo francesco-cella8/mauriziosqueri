@@ -24,6 +24,8 @@ export const ALLOWED_HOSTS = [
   "fiscooggi.it",
   "gazzettaufficiale.it",
   "mef.gov.it",
+  "finanze.gov.it",
+  "finanze.it",
   "normattiva.it",
   "inps.it",
   "agenziaentrateriscossione.gov.it",
@@ -33,9 +35,10 @@ export const DEFAULT_SOURCES = [
   { label: "Agenzia delle Entrate", href: "https://www.agenziaentrate.gov.it/portale/" },
   { label: "FiscoOggi", href: "https://www.fiscooggi.it/" },
   { label: "Gazzetta Ufficiale", href: "https://www.gazzettaufficiale.it/" },
+  { label: "Dipartimento delle Finanze", href: "https://www.finanze.gov.it/it/" },
   { label: "MEF", href: "https://www.mef.gov.it/" },
-  { label: "Normattiva", href: "https://www.normattiva.it/" },
   { label: "INPS", href: "https://www.inps.it/" },
+  { label: "Agenzia delle Entrate-Riscossione", href: "https://www.agenziaentrateriscossione.gov.it/" },
 ];
 
 export function normalize(value) {
@@ -94,11 +97,41 @@ export function hostAllowed(href) {
   }
 }
 
+export function canonicalUrl(href) {
+  const url = new URL(href);
+  const host = url.hostname.toLowerCase().replace(/^www\./, "");
+  const path = url.pathname.replace(/\/+$/, "") || "/";
+  return `${host}${path}${url.search}`;
+}
+
+export function specificPage(href) {
+  try {
+    const path = new URL(href).pathname.replace(/\/+$/, "");
+    return Boolean(path && path !== "/portale" && path !== "/portale/home" && path !== "/it" && path !== "/it/it");
+  } catch {
+    return false;
+  }
+}
+
 export function shouldRun(archive, now) {
   if (!archive?.lastRun) return true;
   const then = Date.parse(archive.lastRun);
   if (Number.isNaN(then)) return true;
   return now - then >= INTERVAL_MS;
+}
+
+export function isCurrent(text, now = new Date()) {
+  const year = romeParts(now).year;
+  const years = [...String(text).matchAll(/\b(20\d{2})\b/g)].map((match) => Number(match[1]));
+  if (!years.length) return true;
+  return years.includes(year);
+}
+
+export function needsAnotherPass(archive, now = new Date()) {
+  const latest = archive?.briefings?.[0];
+  if (!latest) return false;
+  const text = [latest.recap, ...(latest.items || []).flatMap((item) => [item.title, item.recap])].join(" ");
+  return !isCurrent(text, now);
 }
 
 export function knownTitles(briefings) {
@@ -108,6 +141,22 @@ export function knownTitles(briefings) {
       .map((item) => normalize(item.title))
       .filter(Boolean)
   );
+}
+
+export function knownLinks(briefings) {
+  const links = new Set();
+  for (const report of briefings || []) {
+    for (const item of report.items || []) {
+      for (const link of item.links || []) {
+        try {
+          links.add(canonicalUrl(link.href));
+        } catch {
+          // Un vecchio link malformato non blocca il controllo.
+        }
+      }
+    }
+  }
+  return links;
 }
 
 export function parseModelJson(text) {
@@ -121,22 +170,29 @@ export function parseModelJson(text) {
   }
 }
 
-function linksFrom(value) {
+function linksFrom(value, seenUrls) {
   if (!Array.isArray(value)) return [];
   const seen = new Set();
   const links = [];
   for (const link of value) {
     const href = clean(link?.href, 400);
     const label = clean(link?.label, 80);
-    if (!label || !hostAllowed(href) || seen.has(href)) continue;
-    seen.add(href);
+    if (!label || !hostAllowed(href) || !specificPage(href)) continue;
+    let key = "";
+    try {
+      key = canonicalUrl(href);
+    } catch {
+      continue;
+    }
+    if ((seenUrls && !seenUrls.has(key)) || seen.has(key)) continue;
+    seen.add(key);
     links.push({ label, href });
     if (links.length === 3) break;
   }
   return links;
 }
 
-export function buildReport(raw, { known, now = new Date(), previousLabel = "" } = {}) {
+export function buildReport(raw, { known, knownHrefs, seen, sources: checked, now = new Date(), previousLabel = "" } = {}) {
   const today = romeParts(now);
   const next = addDays(today, 3);
   const parsed = raw && typeof raw === "object" ? raw : {};
@@ -144,20 +200,26 @@ export function buildReport(raw, { known, now = new Date(), previousLabel = "" }
   const incoming = Array.isArray(parsed.items) ? parsed.items : [];
   let omitted = 0;
   const items = [];
-  const seen = new Set();
+  const seenTitles = new Set();
 
   if (wantedNew) {
     for (const item of incoming) {
       const title = clean(item?.title, 140);
       const key = normalize(title);
       if (!title || !key) continue;
-      if (known?.has(key) || seen.has(key)) {
+      if (known?.has(key) || seenTitles.has(key)) {
         omitted += 1;
         continue;
       }
-      const links = linksFrom(item?.links);
+      const recap = clean(item?.recap, 700);
+      if (!isCurrent(`${title} ${recap}`, now)) continue;
+      const links = linksFrom(item?.links, seen);
       if (!links.length) continue;
-      seen.add(key);
+      if (links.some((link) => knownHrefs?.has(canonicalUrl(link.href)))) {
+        omitted += 1;
+        continue;
+      }
+      seenTitles.add(key);
       const area = AREAS.includes(item?.area) ? item.area : "Controlli";
       const audience = AUDIENCES.includes(item?.audience) ? item.audience : "Per lo studio e per i clienti";
       items.push({
@@ -165,14 +227,15 @@ export function buildReport(raw, { known, now = new Date(), previousLabel = "" }
         area,
         audience,
         title,
-        recap: clean(item?.recap, 500),
+        recap,
         links,
       });
       if (items.length === 5) break;
     }
   }
 
-  const sources = linksFrom(parsed.sources);
+  const provided = Array.isArray(checked) ? checked.filter((source) => source?.label && source?.href).slice(0, 8) : [];
+  const sources = provided.length ? provided : linksFrom(parsed.sources);
   const report = {
     id: dateId(today),
     dateLabel: longLabel(today),
@@ -185,10 +248,13 @@ export function buildReport(raw, { known, now = new Date(), previousLabel = "" }
     sources: sources.length ? sources : DEFAULT_SOURCES,
   };
 
-  if (!report.recap) {
-    report.recap = items.length
-      ? "Ci sono segnalazioni nuove rispetto al controllo precedente."
-      : "Nessuna novità. Le fonti controllate non aggiungono segnalazioni diverse da quelle già uscite.";
+  if (!items.length) {
+    report.recap =
+      "Nessuna novità degli ultimi giorni. Le pagine trovate descrivono regole già in vigore, non fatti nuovi, oppure ripetono segnalazioni già uscite.";
+  } else if (!isCurrent(report.recap, now)) {
+    report.recap = items.map((item) => item.title).join(". ") + ".";
+  } else if (!report.recap) {
+    report.recap = "Ci sono segnalazioni nuove rispetto al controllo precedente.";
   }
 
   if (omitted > 0) {

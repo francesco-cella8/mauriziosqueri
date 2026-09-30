@@ -1,23 +1,53 @@
 import { getStore } from "@netlify/blobs";
-import { buildReport, knownTitles, parseModelJson, shouldRun } from "./shape.js";
+import { citationUrls, collectDocuments, confirmUrls, messageText } from "./feeds.js";
+import {
+  INTERVAL_MS,
+  buildReport,
+  canonicalUrl,
+  dateId,
+  knownLinks,
+  knownTitles,
+  longLabel,
+  needsAnotherPass,
+  parseModelJson,
+  romeParts,
+  shouldRun,
+} from "./shape.js";
 
 const STORE = "novita";
 const LOCK_MS = 15 * 60 * 1000;
 
 const SYSTEM = `Sei il redattore del resoconto fiscale dello studio di Maurizio Squeri, tributarista.
-Cerchi novità degli ultimi tre giorni utili allo studio e ai suoi clienti.
-Rispondi solo con un oggetto JSON, senza testo intorno e senza markdown.`;
+Lo studio segue contabilità, bilanci, adempimenti, IVA, società e azienda, oltre ai tributi.
+Rispondi solo con un oggetto JSON, senza testo intorno e senza markdown.
+Non inventare norme, date o URL.`;
 
-function prompt(titles) {
+function prompt({ titles, documents, search, fromLabel, toLabel, year }) {
   const already = titles.length ? titles.map((title) => `- ${title}`).join("\n") : "- nessuna";
-  return `Controlla solo queste fonti: Agenzia delle Entrate, FiscoOggi, Gazzetta Ufficiale, MEF, Normattiva, INPS, Agenzia delle Entrate-Riscossione.
+  const docs = documents.length
+    ? documents
+        .map((doc, index) => `${index + 1}. ${doc.label} | ${doc.date} | ${doc.title} | ${doc.summary || "senza sommario"} | ${doc.href}`)
+        .join("\n")
+    : "- nessuno";
+  const extra = search.map((source) => `- ${source.label} (${source.domain})`).join("\n");
+  return `Finestra utile: dal ${fromLabel} al ${toLabel}.
 
-Temi utili: scadenze e versamenti, dichiarazioni, IVA, ritenute e lavoro, società e azienda, controlli e cartelle.
+Temi: scadenze e versamenti, dichiarazioni, IVA, ritenute, contributi che cambiano un adempimento, società e azienda, controlli e cartelle.
+Lascia fuori concorsi, assunzioni, pensioni, titoli di Stato e pagine che non cambiano un adempimento dello studio o di un cliente.
+Una guida stabile o una regola già in vigore prima del ${year} non è una novità.
+
+Documenti già letti dai feed ufficiali. Puoi usarne solo questi, copiando l'URL così com'è:
+${docs}
+
+Cerca ancora, una volta per fonte e solo in questa finestra, qui:
+${extra}
 
 Segnalazioni già pubblicate, da non ripetere nemmeno con un titolo diverso:
 ${already}
 
-Restituisci questo JSON:
+Se il titolo del documento è solo un numero di circolare o di messaggio, scrivi un titolo che dica che cosa cambia.
+Restituisci fino a cinque novità distinte. Se non ce ne sono, status è "invariato" e items è [].
+
 {
   "status": "novita oppure invariato",
   "recap": "due o tre frasi in italiano",
@@ -27,21 +57,29 @@ Restituisci questo JSON:
       "area": "Scadenze oppure Dichiarazioni oppure IVA oppure Lavoro e ritenute oppure Società oppure Controlli",
       "audience": "Per lo studio oppure Per i clienti oppure Per lo studio e per i clienti",
       "recap": "che cosa cambia, per chi, e la data se c'è",
-      "links": [{ "label": "nome della fonte", "href": "url https della pagina trovata" }]
+      "links": [{ "label": "nome della fonte", "href": "url https della pagina" }]
     }
-  ],
-  "sources": [{ "label": "nome", "href": "url https della fonte controllata" }]
+  ]
 }
 
-Se non c'è nulla di nuovo, status è "invariato", items è [] e sources elenca le pagine controllate.
-Ogni href deve uscire dalla ricerca. Non inventare URL.`;
+Ogni href è uno degli URL sopra oppure una pagina trovata dalla ricerca. Mai la home del sito. Non inventare URL.`;
 }
 
-async function askOpenRouter(titles) {
+function urlsInReport(raw) {
+  const hrefs = [];
+  for (const item of raw?.items || []) {
+    for (const link of item?.links || []) {
+      if (link?.href) hrefs.push(link.href);
+    }
+  }
+  return hrefs;
+}
+
+async function askOpenRouter({ titles, documents, search, fromLabel, toLabel, year }) {
   const key = process.env.OPENROUTER_API_KEY;
   const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
-    signal: AbortSignal.timeout(110000),
+    signal: AbortSignal.timeout(180000),
     headers: {
       Authorization: `Bearer ${key}`,
       "Content-Type": "application/json",
@@ -50,10 +88,11 @@ async function askOpenRouter(titles) {
     },
     body: JSON.stringify({
       model: process.env.OPENROUTER_MODEL || "openai/gpt-4.1-mini",
-      temperature: 0.2,
+      temperature: 0.1,
+      max_tokens: 2200,
       messages: [
         { role: "system", content: SYSTEM },
-        { role: "user", content: prompt(titles) },
+        { role: "user", content: prompt({ titles, documents, search, fromLabel, toLabel, year }) },
       ],
       tools: [
         {
@@ -61,18 +100,10 @@ async function askOpenRouter(titles) {
           parameters: {
             engine: "exa",
             max_results: 5,
-            max_uses: 4,
-            max_total_results: 12,
-            search_context_size: "low",
-            allowed_domains: [
-              "agenziaentrate.gov.it",
-              "fiscooggi.it",
-              "gazzettaufficiale.it",
-              "mef.gov.it",
-              "normattiva.it",
-              "inps.it",
-              "agenziaentrateriscossione.gov.it",
-            ],
+            max_uses: search.length,
+            max_total_results: search.length * 4,
+            search_context_size: "medium",
+            allowed_domains: search.map((source) => source.domain),
           },
         },
       ],
@@ -85,9 +116,16 @@ async function askOpenRouter(titles) {
   }
 
   const data = await response.json();
-  const content = data?.choices?.[0]?.message?.content;
+  const content = messageText(data?.choices?.[0]?.message?.content);
   if (!content) throw new Error("OpenRouter non ha restituito un resoconto");
-  return parseModelJson(content);
+  return { raw: parseModelJson(content), data };
+}
+
+function windowStart(archive, now) {
+  const nowMs = now.getTime();
+  const last = Date.parse(archive?.lastRun || "");
+  if (needsAnotherPass(archive, now) || Number.isNaN(last)) return nowMs - 7 * 24 * 60 * 60 * 1000;
+  return Math.max(last - 12 * 60 * 60 * 1000, nowMs - 14 * 24 * 60 * 60 * 1000);
 }
 
 export async function runUpdate(now = new Date()) {
@@ -95,27 +133,51 @@ export async function runUpdate(now = new Date()) {
 
   const store = getStore(STORE);
   const archive = (await store.get("archivio", { type: "json" })) || { briefings: [], lastRun: null };
-  if (!shouldRun(archive, now.getTime())) return { status: "wait" };
+  if (!shouldRun(archive, now.getTime()) && !needsAnotherPass(archive, now)) return { status: "wait" };
 
   const lock = await store.get("lock");
   if (lock && now.getTime() - Date.parse(lock) < LOCK_MS) return { status: "locked" };
   await store.set("lock", now.toISOString());
 
   try {
-    const titles = (archive.briefings || []).flatMap((report) => (report.items || []).map((item) => item.title));
-    const raw = await askOpenRouter(titles);
-    const previous = archive.briefings?.[0];
+    const today = romeParts(now);
+    const history = archive.briefings || [];
+    const start = windowStart(archive, now);
+    const packet = await collectDocuments(start);
+    const { raw, data } = await askOpenRouter({
+      titles: history.flatMap((report) => (report.items || []).map((item) => item.title)),
+      documents: packet.documents,
+      search: packet.search,
+      fromLabel: longLabel(romeParts(from)),
+      toLabel: longLabel(today),
+      year: today.year,
+    });
+
+    const seen = new Set(packet.urls);
+    citationUrls(data).forEach((href) => seen.add(href));
+    const missing = urlsInReport(raw).filter((href) => {
+      try {
+        return !seen.has(canonicalUrl(href));
+      } catch {
+        return false;
+      }
+    });
+    (await confirmUrls(missing)).forEach((href) => seen.add(href));
+
     const report = buildReport(raw, {
-      known: knownTitles(archive.briefings),
+      known: knownTitles(history),
+      knownHrefs: knownLinks(history),
+      seen,
+      sources: packet.checked,
       now,
-      previousLabel: previous?.dateLabel || "",
+      previousLabel: history.find((item) => item.id !== dateId(today))?.dateLabel || "",
     });
     const next = {
       lastRun: now.toISOString(),
-      briefings: [report, ...(archive.briefings || [])].slice(0, 8),
+      briefings: [report, ...history.filter((item) => item.id !== report.id)].slice(0, 8),
     };
     await store.setJSON("archivio", next);
-    return { status: "saved", id: report.id, items: report.items.length };
+    return { status: "saved", id: report.id, items: report.items.length, documents: packet.documents.length };
   } finally {
     await store.delete("lock");
   }
