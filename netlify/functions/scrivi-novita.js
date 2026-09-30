@@ -10,8 +10,7 @@ function sameSecret(left, right) {
 
 export default async (req) => {
   const key = process.env.OPENROUTER_API_KEY || "";
-  const header = req.headers.get("authorization") || "";
-  const token = header.replace(/^Bearer\s+/i, "");
+  const token = req.headers.get("x-studio-token") || "";
   if (!key || !sameSecret(token, key)) {
     return new Response("Non autorizzato", { status: 401 });
   }

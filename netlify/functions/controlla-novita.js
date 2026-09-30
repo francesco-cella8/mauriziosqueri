@@ -18,7 +18,7 @@ export default async (req) => {
   const url = new URL("/.netlify/functions/scrivi-novita", site);
   const response = await fetch(url, {
     method: "POST",
-    headers: { authorization: `Bearer ${key}` },
+    headers: { "x-studio-token": key },
     signal: AbortSignal.timeout(10000),
   });
   console.log(`Controllo avviato: ${response.status}`);
