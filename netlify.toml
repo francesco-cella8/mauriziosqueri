@@ -1,0 +1,17 @@
+# La chiave OpenRouter non sta qui.
+# Su Netlify: Site configuration → Environment variables → OPENROUTER_API_KEY
+# Ambito: Functions. Non usare il prefisso VITE_.
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+[functions."scrivi-novita"]
+  background = true

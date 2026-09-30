@@ -1,5 +1,6 @@
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { mountBriefing } from "./briefing.js";
 
 gsap.registerPlugin(ScrollTrigger);
 ScrollTrigger.config({ ignoreMobileResize: true });
@@ -462,3 +463,5 @@ desktopRule.addEventListener("change", () => {
   fitRail();
   ScrollTrigger.refresh();
 });
+
+mountBriefing({ beforeOpen: closeMenu });
