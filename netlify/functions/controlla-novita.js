@@ -19,7 +19,7 @@ export default async (req) => {
   const response = await fetch(url, {
     method: "POST",
     headers: { "x-studio-token": key },
-    signal: AbortSignal.timeout(10000),
+    signal: AbortSignal.timeout(20000),
   });
   console.log(`Controllo avviato: ${response.status}`);
 };

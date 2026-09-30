@@ -18,9 +18,13 @@ export default async (req) => {
   try {
     const result = await runUpdate();
     console.log(JSON.stringify(result));
-    return Response.json(result);
+    return new Response(null, { status: 202 });
   } catch (error) {
     console.error(error instanceof Error ? error.message : "Controllo non riuscito");
-    return new Response("Controllo non riuscito", { status: 500 });
+    return new Response(null, { status: 500 });
   }
+};
+
+export const config = {
+  background: true,
 };
