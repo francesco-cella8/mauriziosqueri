@@ -82,7 +82,7 @@ const NOISE =
 const TAX =
   /imposta|\btribut|fiscal|fisco|\biva\b|irpef|ires|irap|\bimu\b|\btari\b|\bf24\b|\blipe\b|ritenut|\bcontributi\b|\bcontribuzione\b|accis|\bbollo\b|addizional|forfett|fattur|dichiaraz|versament|cartell|riscoss|succession|donazion|plusvalen|adempiment|concordato|ravvediment|agevolaz|superbonus|split payment|esterometro|cedolar|criptoattivit|partita iva|codice tributo|gestione separata/i;
 
-const STUDIO_TOPIC = /societ|aziend|bilanc|affitto d.azienda|trasferimento d.azienda/i;
+const STUDIO_TOPIC = /societ|aziend|bilanc|agricol|forestal|locazion|registro delle imprese/i;
 
 export function relevant(kind, title, summary) {
   const text = `${title} ${summary}`;

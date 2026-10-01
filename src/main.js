@@ -1,3 +1,4 @@
+import "./consent.js";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { mountBriefing } from "./briefing.js";
@@ -6,16 +7,20 @@ gsap.registerPlugin(ScrollTrigger);
 ScrollTrigger.config({ ignoreMobileResize: true });
 
 const STUDIO = {
-  email: "",
-  phone: "",
+  email: "squeri.m@studiosqueri.com",
+  phone: "329 152 5803",
 };
 
 const servizioLabel = {
-  contabilita: "Elaborazione dati e tenuta della contabilità",
-  bilanci: "Bilanci e adempimenti fiscali",
-  societaria: "Consulenza societaria",
-  azienda: "Acquisto o affitto d'azienda",
-  tributaria: "Consulenza tributaria",
+  contabilita: "Contabilità e assistenza fiscale alle imprese",
+  locazioni: "Contratti di locazione e affitto",
+  camerali: "Pratiche camerali e Registro Imprese",
+  agricoltura: "Aziende agricole e società agricole",
+  forestale: "Settore forestale e Registro Imprese Legno",
+  appalti: "Appalti pubblici e privati",
+  portali: "Portali per gare e acquisti della PA",
+  bandi: "Bandi e contributi regionali",
+  privati: "Dichiarazioni dei redditi e servizi ai privati",
   altro: "Altro",
 };
 
@@ -24,15 +29,13 @@ const menu = document.querySelector("#menu");
 const menuBtn = document.querySelector(".menu-btn");
 const form = document.querySelector("#richiesta");
 const requestPanel = document.querySelector("#request");
-const requestText = document.querySelector("#requestText");
-const copyStatus = document.querySelector("#copyStatus");
 const formError = document.querySelector("#formError");
 const year = document.querySelector("#year");
 
-year.textContent = String(new Date().getFullYear());
+if (year) year.textContent = String(new Date().getFullYear());
 
 function onScroll() {
-  header.classList.toggle("is-scrolled", window.scrollY > 8);
+  header?.classList.toggle("is-scrolled", window.scrollY > 8);
 }
 
 onScroll();
@@ -43,6 +46,7 @@ function motionOff() {
 }
 
 function closeMenu() {
+  if (!menu || !menuBtn) return;
   gsap.killTweensOf(menu);
   gsap.killTweensOf(menu.querySelectorAll("a"));
   menu.hidden = true;
@@ -53,7 +57,8 @@ function closeMenu() {
   document.body.classList.remove("menu-open");
 }
 
-menuBtn.addEventListener("click", () => {
+menuBtn?.addEventListener("click", () => {
+  if (!menu) return;
   const willOpen = menu.hidden;
   if (!willOpen) {
     closeMenu();
@@ -83,10 +88,10 @@ menuBtn.addEventListener("click", () => {
   menu.querySelector("a")?.focus();
 });
 
-menu.querySelectorAll("a").forEach((link) => link.addEventListener("click", closeMenu));
+menu?.querySelectorAll("a").forEach((link) => link.addEventListener("click", closeMenu));
 
 document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && !menu.hidden) {
+  if (event.key === "Escape" && menu && !menu.hidden) {
     closeMenu();
     menuBtn.focus();
   }
@@ -94,7 +99,11 @@ document.addEventListener("keydown", (event) => {
 
 const navLinks = [...document.querySelectorAll(".nav a")];
 const observed = navLinks
-  .map((link) => document.querySelector(link.getAttribute("href")))
+  .map((link) => {
+    const href = link.getAttribute("href") || "";
+    if (!href.startsWith("#")) return null;
+    return document.querySelector(href);
+  })
   .filter(Boolean);
 
 const sectionWatch = new IntersectionObserver(
@@ -117,42 +126,41 @@ document.querySelectorAll("[data-servizio]").forEach((link) => {
   });
 });
 
+const requested = new URLSearchParams(location.search).get("servizio");
+const serviceSelect = document.querySelector("#servizio");
+if (requested && serviceSelect?.querySelector(`option[value="${CSS.escape(requested)}"]`)) {
+  serviceSelect.value = requested;
+}
+
+function openHashedService() {
+  const id = decodeURIComponent(location.hash.replace(/^#/, ""));
+  const node = id ? document.getElementById(id) : null;
+  if (node instanceof HTMLDetailsElement) node.open = true;
+}
+
+openHashedService();
+window.addEventListener("hashchange", openHashedService);
+document.querySelectorAll('a[href^="#"]').forEach((link) => {
+  link.addEventListener("click", () => {
+    const id = decodeURIComponent((link.getAttribute("href") || "").slice(1));
+    const node = id ? document.getElementById(id) : null;
+    if (node instanceof HTMLDetailsElement) node.open = true;
+  });
+});
+
 function wireChannel(key, href, text) {
   const value = STUDIO[key];
   if (!value) return;
   const block = document.querySelector(`[data-channel="${key}"]`);
+  if (!block) return;
   const anchor = block.querySelector("a");
   anchor.href = href(value);
   anchor.textContent = text(value);
   block.hidden = false;
 }
 
-wireChannel("phone", (value) => `tel:${value.replace(/\s/g, "")}`, (value) => value);
+wireChannel("phone", (value) => `tel:+39${value.replace(/\s/g, "")}`, (value) => value);
 wireChannel("email", (value) => `mailto:${value}`, (value) => value);
-
-function composeRequest(data) {
-  const servizio = servizioLabel[data.get("servizio")] || data.get("servizio");
-  return [
-    "Richiesta per Studio Squeri",
-    `Nome: ${data.get("nome")}`,
-    `Email: ${data.get("email")}`,
-    `Telefono: ${data.get("telefono") || "—"}`,
-    `Ambito: ${servizio}`,
-    `Sede: ${data.get("sede") || "—"}`,
-    `Attività: ${data.get("attivita") || "—"}`,
-    "",
-    String(data.get("messaggio")).trim(),
-  ].join("\n");
-}
-
-async function copyText(text) {
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 function setFieldError(field) {
   if (field.validity.valueMissing) {
@@ -161,22 +169,20 @@ function setFieldError(field) {
     field.setCustomValidity("Inserisci un indirizzo email valido.");
   } else if (field.validity.tooShort) {
     field.setCustomValidity("Aggiungi qualche parola in più.");
+  } else if (field.validity.tooLong) {
+    field.setCustomValidity("Accorcia questo testo.");
   } else {
     field.setCustomValidity("");
   }
 }
 
-form.querySelectorAll("input, textarea, select").forEach((field) => {
+form?.querySelectorAll("input, textarea, select").forEach((field) => {
   field.addEventListener("invalid", () => setFieldError(field));
   field.addEventListener("input", () => field.setCustomValidity(""));
   field.addEventListener("change", () => field.setCustomValidity(""));
 });
 
-let lastRequest = "";
-
-async function publishRequest(text) {
-  lastRequest = text;
-  requestText.textContent = text;
+function showSent() {
   form.hidden = true;
   requestPanel.hidden = false;
   if (!motionOff()) {
@@ -192,20 +198,10 @@ async function publishRequest(text) {
       }
     );
   }
-  const copied = await copyText(text);
-
-  if (STUDIO.email) {
-    window.location.href = `mailto:${STUDIO.email}?subject=${encodeURIComponent("Richiesta dallo studio online")}&body=${encodeURIComponent(text)}`;
-    copyStatus.textContent = "Si apre il programma di posta con la richiesta già compilata.";
-    return;
-  }
-
-  copyStatus.textContent = copied
-    ? "Testo copiato. Incollalo in un messaggio oppure portalo in studio, a Santo Stefano d'Aveto o a Chiavari."
-    : "Seleziona il testo e copialo. Le sedi sono in Via Emanuele Razzetti 16/10 e in Vico Oneto 6 a Chiavari.";
+  requestPanel.focus();
 }
 
-form.addEventListener("submit", async (event) => {
+form?.addEventListener("submit", async (event) => {
   event.preventDefault();
   formError.hidden = true;
   let invalid = false;
@@ -217,25 +213,56 @@ form.addEventListener("submit", async (event) => {
     form.reportValidity();
     return;
   }
-  await publishRequest(composeRequest(new FormData(form)));
+
+  const submitBtn = form.querySelector('[type="submit"]');
+  const label = submitBtn.querySelector("span");
+  submitBtn.disabled = true;
+  label.textContent = "Invio in corso";
+  form.setAttribute("aria-busy", "true");
+
+  try {
+    const body = new URLSearchParams(new FormData(form));
+    const code = body.get("servizio");
+    if (code) body.set("servizio", servizioLabel[code] || code);
+    for (const key of ["nome", "messaggio", "telefono"]) {
+      const value = body.get(key);
+      if (typeof value === "string") body.set(key, value.trim());
+    }
+    for (const key of ["telefono", "sede", "attivita"]) {
+      if (!String(body.get(key) || "").trim()) body.delete(key);
+    }
+    body.set("form-name", "richiesta");
+    const response = await fetch("/", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: body.toString(),
+    });
+    if (!response.ok) throw new Error(String(response.status));
+    showSent();
+  } catch {
+    formError.hidden = false;
+    formError.textContent =
+      "Non è partita. Riprova tra un momento, oppure scrivi a uno degli indirizzi dello studio.";
+    submitBtn.disabled = false;
+    label.textContent = "Invia la richiesta";
+    form.removeAttribute("aria-busy");
+  }
 });
 
-document.querySelector("#copyAgain").addEventListener("click", async () => {
-  const copied = await copyText(lastRequest);
-  copyStatus.textContent = copied
-    ? "Copiata di nuovo."
-    : "Seleziona il testo qui sopra e copialo a mano.";
-});
-
-document.querySelector("#editRequest").addEventListener("click", () => {
+document.querySelector("#newRequest")?.addEventListener("click", () => {
+  form.reset();
+  const submitBtn = form.querySelector('[type="submit"]');
+  submitBtn.disabled = false;
+  submitBtn.querySelector("span").textContent = "Invia la richiesta";
+  form.removeAttribute("aria-busy");
   requestPanel.hidden = true;
   form.hidden = false;
-  form.querySelector("input, textarea, select")?.focus();
+  form.querySelector("[name='nome']")?.focus();
 });
 
 function finishIntro(curtain) {
   document.documentElement.classList.add("is-in");
-  curtain.remove();
+  curtain?.remove();
   gsap.set(".hero-reveal, .header", { clearProps: "all" });
   ScrollTrigger.refresh();
 }
@@ -272,8 +299,9 @@ function playIntro() {
 
 const reduce = document.documentElement.classList.contains("reduce");
 
-if (reduce) {
+if (reduce || !document.querySelector(".curtain")) {
   document.querySelector(".curtain")?.remove();
+  document.documentElement.classList.add("is-in");
 } else {
   const fontsReady = document.fonts?.ready ?? Promise.resolve();
   Promise.race([fontsReady, new Promise((resolve) => window.setTimeout(resolve, 900))]).then(playIntro);
@@ -327,7 +355,7 @@ motion.add("(prefers-reduced-motion: no-preference)", () => {
       setShiftY(-marbleRange * self.progress);
     },
     onUpdate(self) {
-      bar.style.transform = `scaleX(${self.progress})`;
+      if (bar) bar.style.transform = `scaleX(${self.progress})`;
       setShiftY(-marbleRange * self.progress);
     },
   });
@@ -367,7 +395,7 @@ motion.add("(prefers-reduced-motion: no-preference)", () => {
   }
 
   revealGroup(".services-head", ":scope > *");
-  revealGroup(".service-list", ".service", { stagger: 0.05 });
+  revealGroup(".service-board", ".svc", { stagger: 0.05 });
   revealGroup(".section-head", ":scope > *");
   revealGroup(".who .wrap, .moments .wrap", ":scope > .eyebrow, :scope > h2");
   revealGroup(".who-list", "li", { stagger: 0.05 });
@@ -446,7 +474,10 @@ motion.add("(prefers-reduced-motion: no-preference)", () => {
   revealGroup(".laws-note");
   revealGroup(".credentials .wrap", ":scope > .eyebrow, :scope > h2");
   revealGroup(".cred-list", "li", { stagger: 0.05 });
-  revealGroup(".studio-grid > div:first-child", ":scope > *:not([hidden])", { stagger: 0.04 });
+  revealGroup(".studio-copy", ":scope > *:not([hidden])", { stagger: 0.04 });
+  revealGroup(".roster-head", ":scope > *");
+  revealGroup(".roster-groups", "li", { stagger: 0.04 });
+  revealGroup(".ask-copy", ":scope > *");
   revealGroup(".contact");
   revealGroup(".map-block");
 
@@ -476,4 +507,163 @@ desktopRule.addEventListener("change", () => {
   ScrollTrigger.refresh();
 });
 
+function mountSatelliteMaps() {
+  const tileSize = 256;
+
+  function project(lat, lng, zoom) {
+    const scale = 2 ** zoom;
+    const x = ((lng + 180) / 360) * scale;
+    const sine = Math.sin((lat * Math.PI) / 180);
+    const y = (0.5 - Math.log((1 + sine) / (1 - sine)) / (4 * Math.PI)) * scale;
+    return { x, y };
+  }
+
+  function unproject(x, y, zoom) {
+    const scale = 2 ** zoom;
+    const lng = (x / scale) * 360 - 180;
+    const lat = (Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / scale))) * 180) / Math.PI;
+    return { lat, lng };
+  }
+
+  document.querySelectorAll("[data-satellite]").forEach((frame) => {
+    if (frame.dataset.satelliteReady) return;
+    frame.dataset.satelliteReady = "1";
+    const address = {
+      lat: Number(frame.dataset.lat),
+      lng: Number(frame.dataset.lng),
+    };
+    if (!Number.isFinite(address.lat) || !Number.isFinite(address.lng)) return;
+
+    const view = { ...address, zoom: Number(frame.dataset.zoom) || 17 };
+    const layer = document.createElement("div");
+    layer.className = "sat-layer";
+    const pin = document.createElement("span");
+    pin.className = "sat-pin";
+    pin.setAttribute("aria-hidden", "true");
+    frame.prepend(pin);
+    frame.prepend(layer);
+
+    const tiles = new Map();
+    let drag = null;
+
+    function render() {
+      const zoom = view.zoom;
+      const size = frame.getBoundingClientRect();
+      if (size.width < 2 || size.height < 2) return;
+      const center = project(view.lat, view.lng, zoom);
+      const originX = size.width / 2 - center.x * tileSize;
+      const originY = size.height / 2 - center.y * tileSize;
+      const minX = Math.floor(-originX / tileSize) - 1;
+      const maxX = Math.ceil((size.width - originX) / tileSize) + 1;
+      const minY = Math.floor(-originY / tileSize) - 1;
+      const maxY = Math.ceil((size.height - originY) / tileSize) + 1;
+      const limit = 2 ** zoom;
+      const needed = new Set();
+
+      for (let x = minX; x <= maxX; x += 1) {
+        for (let y = minY; y <= maxY; y += 1) {
+          if (y < 0 || y >= limit) continue;
+          const wrapped = ((x % limit) + limit) % limit;
+          const id = `${zoom}/${y}/${wrapped}`;
+          needed.add(id);
+          let image = tiles.get(id);
+          if (!image) {
+            image = document.createElement("img");
+            image.alt = "";
+            image.draggable = false;
+            image.decoding = "async";
+            image.src = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${zoom}/${y}/${wrapped}`;
+            layer.append(image);
+            tiles.set(id, image);
+          }
+          image.style.transform = `translate(${originX + x * tileSize}px, ${originY + y * tileSize}px)`;
+        }
+      }
+
+      tiles.forEach((image, id) => {
+        if (needed.has(id)) return;
+        image.remove();
+        tiles.delete(id);
+      });
+
+      const point = project(address.lat, address.lng, zoom);
+      pin.style.left = `${size.width / 2 + (point.x - center.x) * tileSize}px`;
+      pin.style.top = `${size.height / 2 + (point.y - center.y) * tileSize}px`;
+    }
+
+    layer.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0 || event.pointerType === "touch") return;
+      layer.setPointerCapture(event.pointerId);
+      layer.classList.add("is-dragging");
+      drag = { x: event.clientX, y: event.clientY, lat: view.lat, lng: view.lng };
+    });
+
+    layer.addEventListener("pointermove", (event) => {
+      if (!drag) return;
+      const start = project(drag.lat, drag.lng, view.zoom);
+      const next = unproject(
+        start.x - (event.clientX - drag.x) / tileSize,
+        start.y - (event.clientY - drag.y) / tileSize,
+        view.zoom
+      );
+      view.lat = next.lat;
+      view.lng = next.lng;
+      render();
+    });
+
+    function endDrag(event) {
+      if (!drag) return;
+      drag = null;
+      layer.classList.remove("is-dragging");
+      if (layer.hasPointerCapture(event.pointerId)) layer.releasePointerCapture(event.pointerId);
+    }
+
+    layer.addEventListener("pointerup", endDrag);
+    layer.addEventListener("pointercancel", endDrag);
+
+    frame.addEventListener(
+      "wheel",
+      (event) => {
+        event.preventDefault();
+        const next = Math.min(18, Math.max(14, view.zoom + (event.deltaY < 0 ? 1 : -1)));
+        if (next === view.zoom) return;
+        tiles.forEach((image) => image.remove());
+        tiles.clear();
+        view.zoom = next;
+        render();
+      },
+      { passive: false }
+    );
+
+    const watch = new ResizeObserver(render);
+    watch.observe(frame);
+    if ("IntersectionObserver" in window) {
+      const seen = new IntersectionObserver(
+        (entries) => {
+          if (!entries.some((entry) => entry.isIntersecting)) return;
+          render();
+          seen.disconnect();
+        },
+        { rootMargin: "200px" }
+      );
+      seen.observe(frame);
+    } else {
+      render();
+    }
+  });
+}
+
+function applyMapConsent(on) {
+  document.querySelectorAll("[data-satellite]").forEach((frame) => {
+    const gate = frame.querySelector(".map-gate");
+    if (gate) gate.hidden = on;
+  });
+  if (on) mountSatelliteMaps();
+}
+
+document.addEventListener("squeri-consent", (event) => {
+  applyMapConsent(Boolean(event.detail?.maps));
+});
+
+applyMapConsent(Boolean(window.SqueriConsent?.read()?.maps));
 mountBriefing({ beforeOpen: closeMenu });

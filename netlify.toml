@@ -2,6 +2,11 @@
 # Su Netlify: Site configuration → Environment variables → OPENROUTER_API_KEY
 # Ambito: Functions. Non usare il prefisso VITE_.
 # Il controllo parte da controlla-novita.
+#
+# Il modulo «richiesta» è un Netlify Form.
+# Form detection va lasciato attivo.
+# Notifica email: Forms → Submission notifications → squeri.m@studiosqueri.com
+# Il campo email del modulo diventa il Reply-To.
 
 [build]
   command = "npm run build"
