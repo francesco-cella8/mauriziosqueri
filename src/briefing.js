@@ -1,5 +1,13 @@
 import { briefings } from "./briefing-data.js";
 
+const RELEVANCE = ["altissima", "alta", "media", "bassa"];
+const RELEVANCE_LABEL = {
+  altissima: "Altissima",
+  alta: "Alta",
+  media: "Media",
+  bassa: "Bassa",
+};
+
 function escapeHtml(value) {
   return String(value)
     .replaceAll("&", "&amp;")
@@ -8,14 +16,10 @@ function escapeHtml(value) {
     .replaceAll('"', "&quot;");
 }
 
-function groupItems(items) {
-  const groups = [];
-  items.forEach((item) => {
-    const current = groups.find((group) => group.area === item.area);
-    if (current) current.items.push(item);
-    else groups.push({ area: item.area, items: [item] });
-  });
-  return groups;
+function byRelevance(items) {
+  return [...items].sort(
+    (left, right) => RELEVANCE.indexOf(left.rilevanza || "media") - RELEVANCE.indexOf(right.rilevanza || "media")
+  );
 }
 
 function renderLinks(links) {
@@ -38,7 +42,7 @@ function usable(list) {
 }
 
 function renderReport(report, reports, preview) {
-  const groups = groupItems(report.items);
+  const ordered = byRelevance(report.items);
   const newsCount = report.items.length;
   const status =
     report.status === "invariato"
@@ -60,22 +64,22 @@ function renderReport(report, reports, preview) {
             : ""
         }
         <div class="briefing-groups">
-          ${groups
-            .map(
-              (group) => `<section>
-                <h3>${escapeHtml(group.area)}</h3>
-                ${group.items
-                  .map(
-                    (item) => `<article class="briefing-item">
-                      <p>${escapeHtml(item.audience)}</p>
-                      <h4>${escapeHtml(item.title)}</h4>
-                      <p>${escapeHtml(item.recap)}</p>
-                      <div class="briefing-links">${renderLinks(item.links)}</div>
-                    </article>`
-                  )
-                  .join("")}
-              </section>`
-            )
+          ${ordered
+            .map((item, index) => {
+              const level = RELEVANCE.includes(item.rilevanza) ? item.rilevanza : "media";
+              const number = String(index + 1).padStart(2, "0");
+              return `<article class="briefing-item is-${level}">
+                <div class="briefing-meta">
+                  <span class="briefing-index" aria-hidden="true">${number}</span>
+                  <span class="briefing-level is-${level}">${RELEVANCE_LABEL[level]}</span>
+                  <span class="briefing-chip">${escapeHtml(item.area)}</span>
+                  <span class="briefing-chip">${escapeHtml(item.audience)}</span>
+                </div>
+                <h4>${escapeHtml(item.title)}</h4>
+                <p>${escapeHtml(item.recap)}</p>
+                <div class="briefing-links">${renderLinks(item.links)}</div>
+              </article>`;
+            })
             .join("")}
         </div>`;
 
@@ -138,9 +142,50 @@ export function mountBriefing({ beforeOpen } = {}) {
   let currentId = reports[0].id;
   let lastFocus = null;
 
+  function paintHome(report) {
+    const stage = document.querySelector("[data-briefing-stage]");
+    if (!stage) return;
+    const featured = byRelevance(report.items)
+      .filter((item) => item.rilevanza === "altissima" || item.rilevanza === "alta")
+      .slice(0, 3);
+    const shown = featured.length ? featured : byRelevance(report.items).slice(0, 3);
+    const count =
+      report.status === "invariato"
+        ? "Niente di nuovo"
+        : report.items.length === 1
+          ? "Una novità"
+          : `${report.items.length} novità`;
+    stage.innerHTML = `<div class="bulletin-copy">
+        <p class="eyebrow">Novità</p>
+        <p class="bulletin-note">Atti ufficiali, per lo studio e per i clienti.</p>
+        <h2 id="novita-title">${escapeHtml(report.dateLabel)}</h2>
+        <p class="bulletin-count">${escapeHtml(count)}</p>
+        <p class="bulletin-lead">${escapeHtml(report.recap)}</p>
+        <button class="btn" type="button" data-open-briefing>
+          Leggi il resoconto
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" /></svg>
+        </button>
+      </div>
+      <ol class="bulletin-list">
+        ${shown
+          .map((item) => {
+            const level = RELEVANCE.includes(item.rilevanza) ? item.rilevanza : "media";
+            return `<li>
+              <button type="button" data-open-briefing>
+                <span class="briefing-level is-${level}">${RELEVANCE_LABEL[level]}</span>
+                <span class="bulletin-title">${escapeHtml(item.title)}</span>
+                <span class="bulletin-go" aria-hidden="true">Apri</span>
+              </button>
+            </li>`;
+          })
+          .join("")}
+      </ol>`;
+  }
+
   function paint() {
     const report = reports.find((entry) => entry.id === currentId) || reports[0];
     body.innerHTML = renderReport(report, reports, preview);
+    paintHome(report);
   }
 
   function pageParts() {
@@ -172,18 +217,15 @@ export function mountBriefing({ beforeOpen } = {}) {
       button.classList.remove("is-active");
       button.setAttribute("aria-expanded", "false");
     });
-    if (location.hash === "#novita") {
-      history.replaceState(null, "", `${location.pathname}${location.search}`);
-    }
     lastFocus?.focus?.();
   }
 
   paint();
 
-  document.querySelectorAll("[data-open-briefing]").forEach((button) => {
-    button.setAttribute("aria-expanded", "false");
-    button.setAttribute("aria-controls", "briefing-title");
-    button.addEventListener("click", () => open(button));
+  document.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-open-briefing]");
+    if (!button || root.contains(button)) return;
+    open(button);
   });
 
   root.addEventListener("click", (event) => {
@@ -221,16 +263,19 @@ export function mountBriefing({ beforeOpen } = {}) {
     }
   });
 
-  if (location.hash === "#novita") open(document.querySelector("[data-open-briefing]"));
-
   fetch("/api/briefing", { signal: AbortSignal.timeout(4000) })
     .then((response) => (response.ok ? response.json() : null))
     .then((data) => {
       if (!usable(data?.briefings)) return;
-      reports = data.briefings;
+      const fresh = data.briefings.filter(
+        (entry) => entry.id === briefings[0]?.id || (entry.items || []).some((item) => item.rilevanza)
+      );
+      const ids = new Set(fresh.map((entry) => entry.id));
+      reports = [...fresh, ...briefings.filter((entry) => !ids.has(entry.id))];
       preview = false;
-      if (!reports.some((entry) => entry.id === currentId)) currentId = reports[0].id;
-      if (!root.hidden) paint();
+      const newest = fresh.find((entry) => entry.id !== briefings[0]?.id);
+      currentId = newest?.id || reports[0].id;
+      paint();
     })
     .catch(() => {
       // Senza Netlify, o prima del primo controllo, resta l'anteprima.

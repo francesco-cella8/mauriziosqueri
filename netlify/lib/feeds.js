@@ -87,6 +87,8 @@ const STUDIO_TOPIC = /societ|aziend|bilanc|affitto d.azienda|trasferimento d.azi
 export function relevant(kind, title, summary) {
   const text = `${title} ${summary}`;
   if (NOISE.test(text)) return false;
+  if (/graduatoria|ricerca e sviluppo|accordi per l.innovazione|mancato funzionamento/i.test(text)) return false;
+  if (/^report\b/i.test(title)) return false;
   if (kind !== "wide") return true;
   if (TAX.test(text)) return true;
   const isAct = /^(decreto-legge|decreto legislativo|legge)\b/i.test(title);
@@ -173,7 +175,7 @@ async function readFeed(feed, startMs) {
   return parseRssItems(xml)
     .filter((item) => item.time >= startMs && relevant(feed.kind, item.title, item.summary))
     .sort((a, b) => b.time - a.time)
-    .slice(0, 8)
+    .slice(0, 15)
     .map((item) => ({
       label: feed.label,
       title: item.title,
@@ -228,6 +230,7 @@ export async function collectDocuments(startMs) {
     }
   }
   documents.sort((a, b) => b.time - a.time);
+  await readActs(documents);
 
   const labels = new Set([...results.filter((result) => result.documents).map((result) => result.feed.label), ...uniqueSearch.map((source) => source.label)]);
   const checked = SOURCE_ORDER.filter((label) => labels.has(label)).map((label) => {
@@ -268,6 +271,66 @@ function harvestUrls(value, found = new Set()) {
   }
   if (value && typeof value === "object") Object.values(value).forEach((item) => harvestUrls(item, found));
   return found;
+}
+
+function needsReading(document) {
+  const summary = document.summary || "";
+  if (/Vai al menu principale/.test(summary)) return true;
+  if (summary.length >= 220 && /codice tributo|imposta da versare|omessa presentazione/i.test(summary)) return false;
+  return summary.length < 220;
+}
+
+function actText(value) {
+  const text = String(value || "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (/Vai al menu principale|Pensione e Previdenza Pensione/.test(text)) return "";
+  if (text.length < 80) return "";
+  const opening = text.slice(0, 420);
+  const codeAt = text.search(/codice tributo:\s*[•\s]*[“"']?\d{4}|[“"']9005[”"']/i);
+  const codes = codeAt > 0 ? text.slice(Math.max(0, codeAt - 40), codeAt + 1100) : "";
+  const conclusionAt = text.search(/si ritiene che|deve concludersi/i);
+  const conclusion = conclusionAt > 0 ? text.slice(Math.max(0, conclusionAt - 220), conclusionAt + 380) : "";
+  return [opening, codes, conclusion]
+    .filter((part, index, all) => part && all.indexOf(part) === index)
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 2200);
+}
+
+async function readActs(documents) {
+  const targets = documents.filter((document) => needsReading(document)).slice(0, 6);
+  await Promise.all(
+    targets.map(async (document) => {
+      try {
+        const response = await fetch(preferHttps(document.href), {
+          signal: AbortSignal.timeout(20000),
+          headers: { "User-Agent": UA, Accept: "application/pdf,text/html,*/*" },
+        });
+        if (!response.ok) return;
+        const buffer = Buffer.from(await response.arrayBuffer());
+        if (buffer.length < 200 || buffer.length > 5_000_000) return;
+        const type = response.headers.get("content-type") || "";
+        let text = "";
+        if (type.includes("pdf") || buffer.subarray(0, 5).toString() === "%PDF-") {
+          const { extractText } = await import("unpdf");
+          const extracted = await extractText(new Uint8Array(buffer), { mergePages: true });
+          text = extracted.text;
+        } else {
+          text = buffer
+            .toString("utf8")
+            .replace(/<script[\s\S]*?<\/script>/gi, " ")
+            .replace(/<style[\s\S]*?<\/style>/gi, " ")
+            .replace(/<[^>]+>/g, " ");
+        }
+        const act = actText(text);
+        if (act) document.summary = act;
+      } catch {
+        // Resta il sommario del feed se l'atto non si apre.
+      }
+    })
+  );
 }
 
 export async function confirmUrls(hrefs) {

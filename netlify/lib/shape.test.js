@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildReport, canonicalUrl, hostAllowed, isCurrent, needsAnotherPass, shouldRun, specificPage } from "./shape.js";
+import { actCodes, buildReport, canonicalUrl, hostAllowed, isCurrent, isRoutine, needsAnotherPass, reviewDraft, shouldRun, specificPage } from "./shape.js";
 
 test("un controllo recente non riparte", () => {
   const now = Date.parse("2026-10-02T05:00:00.000Z");
@@ -137,6 +137,108 @@ test("tiene solo gli URL raccolti e non ripete una pagina già uscita", () => {
 
   assert.equal(report.items.length, 0);
   assert.equal(report.omitted.count, 1);
+});
+
+test("il calendario ordinario e le regole solo confermate non entrano nel resoconto", () => {
+  const now = new Date("2026-09-30T18:00:00.000Z");
+  const report = buildReport(
+    {
+      status: "novita",
+      recap: "Sono confermate le scadenze ordinarie e c'è una risoluzione.",
+      items: [
+        {
+          title: "Versamenti ritenute settembre 2026",
+          area: "Lavoro e ritenute",
+          audience: "Per lo studio e per i clienti",
+          recap: "I sostituti devono effettuare entro settembre 2026 il versamento delle ritenute operate.",
+          links: [{ label: "FiscoOggi", href: "https://www.fiscooggi.it/portale/rubrica/ritenute" }],
+        },
+        {
+          title: "Comunicazioni sui controlli",
+          area: "Controlli",
+          audience: "Per i clienti",
+          recap: "Aggiornamenti dal 2025 confermati nel 2026 sulle sanzioni ridotte e la rateizzazione.",
+          links: [{ label: "FiscoOggi", href: "https://www.fiscooggi.it/portale/rubrica/controlli" }],
+        },
+        {
+          title: "Codici tributo per le comunicazioni IVA",
+          area: "Controlli",
+          audience: "Per lo studio e per i clienti",
+          recap: "Dal 30 settembre 2026 la risoluzione istituisce i codici tributo per l'articolo 54-bis.1 del d.P.R. 633/1972.",
+          links: [{ label: "Agenzia", href: "https://www.agenziaentrate.gov.it/portale/risoluzione-34" }],
+        },
+        {
+          title: "Codici SANL e EBON",
+          area: "Controlli",
+          audience: "Per lo studio e per i clienti",
+          recap: "Circolare INPS del 25 settembre 2026: codice tributo SANL per i contributi SANILAV.",
+          links: [{ label: "INPS", href: "https://www.inps.it/it/it/circolare-102.html" }],
+        },
+      ],
+    },
+    { now }
+  );
+
+  assert.equal(report.items.length, 2);
+  assert.equal(report.items[0].area, "IVA");
+  assert.equal(report.items[1].area, "Lavoro e ritenute");
+  assert.equal(report.items[1].audience, "Per lo studio");
+  assert.equal(isRoutine(report.recap), false);
+  assert.match(report.recap, /Codici tributo/);
+});
+
+test("le schede escono dalla più rilevante", () => {
+  const report = buildReport(
+    {
+      status: "novita",
+      recap: "Due atti del 2026.",
+      items: [
+        {
+          title: "Codice di un ente",
+          area: "Lavoro e ritenute",
+          audience: "Per lo studio",
+          rilevanza: "bassa",
+          recap: "Circolare del 25 settembre 2026 per un ente nominato.",
+          links: [{ label: "INPS", href: "https://www.inps.it/it/it/circolare-ente" }],
+        },
+        {
+          title: "Codici della dichiarazione omessa",
+          area: "IVA",
+          audience: "Per lo studio e per i clienti",
+          rilevanza: "altissima",
+          recap: "Risoluzione del 30 settembre 2026, codice 9005.",
+          links: [{ label: "Agenzia", href: "https://www.agenziaentrate.gov.it/portale/risoluzione-34" }],
+        },
+      ],
+    },
+    { now: new Date("2026-10-01T08:00:00.000Z") }
+  );
+  assert.equal(report.items[0].rilevanza, "altissima");
+  assert.equal(report.items[1].rilevanza, "bassa");
+});
+
+test("una bozza senza il codice dell'atto non è pubblicabile", () => {
+  const documents = [
+    {
+      title: "Risoluzione codici tributo",
+      href: "https://www.agenziaentrate.gov.it/portale/risoluzione-34",
+      summary: "Si istituisce il codice tributo “9005” per le dichiarazioni IVA omesse.",
+    },
+  ];
+  const notes = reviewDraft(
+    {
+      items: [
+        {
+          title: "Recuperi IVA",
+          recap: "Ci sono nuovi codici per i versamenti.",
+          links: [{ href: documents[0].href }],
+        },
+      ],
+    },
+    documents
+  );
+  assert.equal(actCodes(documents[0].summary)[0], "9005");
+  assert.match(notes.join(" "), /9005/);
 });
 
 test("una regola del 2024 non conta come novità del 2026", () => {

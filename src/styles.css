@@ -732,6 +732,92 @@ html:not(.js) .curtain {
   padding-block: clamp(4rem, 8vw, 6.5rem);
 }
 
+.bulletin {
+  position: relative;
+  z-index: 1;
+  padding: clamp(2.5rem, 5vw, 3.5rem) 0 0.5rem;
+  scroll-margin-top: calc(var(--header) + 1rem);
+}
+
+.bulletin-panel {
+  display: grid;
+  gap: 1.2rem;
+  padding: 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 2rem;
+  background:
+    radial-gradient(420px 180px at 100% 0%, rgba(217, 203, 184, 0.45), transparent 70%),
+    #fbf9f6;
+  box-shadow: 0 16px 40px rgba(36, 48, 57, 0.08);
+}
+
+.bulletin-note {
+  max-width: 36rem;
+  margin: -0.2rem 0 0.9rem;
+  color: var(--ink);
+  font-size: 0.98rem;
+  line-height: 1.5;
+}
+
+.bulletin-count {
+  margin-top: 0.35rem;
+  color: var(--gold-deep);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.bulletin-lead {
+  max-width: 38rem;
+  margin-top: 0.75rem;
+  color: var(--muted);
+}
+
+.bulletin-copy .btn {
+  margin-top: 1.15rem;
+}
+
+.bulletin-list {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bulletin-list button {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.7rem;
+  align-items: center;
+  width: 100%;
+  padding: 0.9rem 0.95rem;
+  border: 1px solid var(--line);
+  border-radius: 1.2rem;
+  background: white;
+  cursor: pointer;
+  text-align: left;
+}
+
+.bulletin-list button:hover {
+  border-color: #b7a48e;
+}
+
+.bulletin-title {
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  line-height: 1.3;
+}
+
+.bulletin-go {
+  color: var(--gold-deep);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .services {
   position: relative;
 }
@@ -743,8 +829,17 @@ html:not(.js) .curtain {
   right: 0;
   top: 0;
   height: 2.75rem;
-  background: linear-gradient(var(--navy), transparent);
+  background: linear-gradient(rgba(246, 243, 238, 0.35), transparent);
   pointer-events: none;
+}
+
+@media (min-width: 900px) {
+  .bulletin-panel {
+    grid-template-columns: minmax(0, 0.92fr) minmax(16rem, 1.08fr);
+    align-items: center;
+    gap: 1.6rem;
+    padding: 1.6rem 1.7rem;
+  }
 }
 
 .eyebrow {
@@ -1853,9 +1948,9 @@ h2 em {
 }
 
 .briefing-heading h2 {
-  font-size: clamp(1.9rem, 4vw, 2.7rem);
-  letter-spacing: -0.045em;
-  line-height: 1.05;
+  font-size: clamp(1.85rem, 3.4vw, 2.45rem);
+  letter-spacing: -0.03em;
+  line-height: 1.08;
 }
 
 .briefing-status {
@@ -1913,12 +2008,16 @@ h2 em {
 }
 
 .briefing-recap {
-  margin-top: 1.35rem;
+  margin-top: 1.15rem;
+  padding: 1rem 1.1rem 1.05rem;
+  border-radius: 1.25rem;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--line);
   font-family: var(--serif);
-  font-size: 1.35rem;
+  font-size: clamp(1.15rem, 2vw, 1.35rem);
   font-weight: 500;
-  line-height: 1.4;
-  letter-spacing: -0.02em;
+  line-height: 1.45;
+  letter-spacing: -0.015em;
 }
 
 .briefing-omit {
@@ -1950,11 +2049,53 @@ h2 em {
 }
 
 .briefing-groups {
-  margin-top: 1.6rem;
+  display: grid;
+  gap: 0.85rem;
+  margin-top: 1.15rem;
 }
 
-.briefing-groups section + section {
-  margin-top: 1.5rem;
+.briefing-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.7rem;
+}
+
+.briefing-level,
+.briefing-chip {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.briefing-level {
+  border-radius: 999px;
+  padding: 0.22rem 0.6rem;
+}
+
+.briefing-level.is-altissima {
+  background: var(--navy);
+  color: white;
+}
+
+.briefing-level.is-alta {
+  background: var(--gold);
+  color: var(--navy);
+}
+
+.briefing-level.is-media {
+  background: white;
+  border: 1px solid var(--line);
+  color: var(--ink);
+}
+
+.briefing-level.is-bassa {
+  color: var(--muted);
+}
+
+.briefing-chip {
+  color: var(--gold-deep);
 }
 
 .briefing-groups h3,
@@ -1967,26 +2108,51 @@ h2 em {
   text-transform: uppercase;
 }
 
+.briefing-index {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
 .briefing-item {
-  margin-top: 0.7rem;
-  padding: 1rem 1.05rem 1.05rem;
+  margin: 0;
+  padding: 1.05rem 1.15rem 1.1rem;
   border: 1px solid var(--line);
+  border-left: 4px solid var(--line);
   border-radius: 1.35rem;
   background: white;
   box-shadow: 0 12px 32px rgba(50, 62, 74, 0.05);
 }
 
-.briefing-item > p:first-child {
-  color: var(--gold-deep);
-  font-size: 0.75rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+.briefing-item.is-altissima {
+  border-left-color: var(--navy);
+}
+
+.briefing-item.is-alta {
+  border-left-color: #b7a48e;
+}
+
+.briefing-item.is-media {
+  border-left-color: #d9cbb8;
+}
+
+.briefing-item.is-bassa {
+  border-left-color: rgba(36, 48, 57, 0.16);
+}
+
+.briefing-item > p {
+  max-width: 65ch;
+  margin-top: 0.45rem;
+  color: var(--ink);
+  font-size: 0.98rem;
+  line-height: 1.55;
 }
 
 .briefing-item h4 {
-  margin: 0.2rem 0 0.4rem;
-  font-size: 1.15rem;
+  max-width: 40rem;
+  margin: 0.55rem 0 0.35rem;
+  font-size: clamp(1.12rem, 1.6vw, 1.28rem);
   letter-spacing: -0.03em;
   line-height: 1.25;
 }
@@ -2019,9 +2185,17 @@ h2 em {
 .briefing-sources a {
   display: inline-flex;
   align-items: center;
-  padding: 0.38rem 0.75rem;
+  padding: 0.42rem 0.8rem;
   border-radius: 999px;
-  background: var(--paper);
+  background: #f3efe8;
+  font-size: 0.84rem;
+  line-height: 1.3;
+}
+
+.briefing-links a::after {
+  content: "↗";
+  margin-left: 0.4rem;
+  font-size: 0.78rem;
 }
 
 .briefing-sources a {

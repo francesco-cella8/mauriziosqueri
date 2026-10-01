@@ -52,5 +52,8 @@ test("tiene i tributi e lascia fuori pensioni, concorsi e titoli di Stato", () =
   assert.equal(relevant("desk", "Selezione pubblica per l'assunzione di funzionari", "Concorso"), false);
   assert.equal(relevant("desk", "Working Paper settembre 2026", "DF/WP 24/2026"), false);
   assert.equal(relevant("wide", "Titoli di Stato", "Programma trimestrale di emissione"), false);
+  assert.equal(relevant("wide", "COMUNICATO", "Graduatoria delle domande di agevolazioni per ricerca e sviluppo"), false);
+  assert.equal(relevant("wide", "DECRETO", "Accertamento del periodo di mancato funzionamento della Corte di giustizia tributaria"), false);
+  assert.equal(relevant("desk", "Report sulla fatturazione elettronica", "Dati di luglio"), false);
   assert.equal(preferHttps("https://www.finanze.gov.it:443/it/rss.xml").includes(":443"), false);
 });

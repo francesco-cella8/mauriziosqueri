@@ -303,6 +303,18 @@ document.fonts?.ready?.then(fitRail);
 const motion = gsap.matchMedia();
 
 motion.add("(prefers-reduced-motion: no-preference)", () => {
+  gsap.from(".bulletin-panel", {
+    autoAlpha: 0,
+    y: 36,
+    duration: 0.9,
+    ease: "power2.out",
+    scrollTrigger: {
+      trigger: ".bulletin",
+      start: "top 88%",
+      once: true,
+    },
+  });
+
   const bar = document.querySelector(".progress span");
   const setShiftY = gsap.quickSetter(".marble-shift", "y", "px");
   let marbleRange = window.innerHeight * 0.1;

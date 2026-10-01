@@ -14,10 +14,13 @@ const MONTHS = [
 ];
 
 export const INTERVAL_MS = 3 * 24 * 60 * 60 * 1000;
+export const LOOKBACK_MS = 10 * 24 * 60 * 60 * 1000;
 
 export const AREAS = ["Scadenze", "Dichiarazioni", "IVA", "Lavoro e ritenute", "Società", "Controlli"];
 
 export const AUDIENCES = ["Per lo studio", "Per i clienti", "Per lo studio e per i clienti"];
+
+export const RELEVANCE = ["altissima", "alta", "media", "bassa"];
 
 export const ALLOWED_HOSTS = [
   "agenziaentrate.gov.it",
@@ -127,6 +130,89 @@ export function isCurrent(text, now = new Date()) {
   return years.includes(year);
 }
 
+export function isRoutine(text) {
+  const value = normalize(text);
+  if (!value) return true;
+  if (
+    /scadenze ordinarie|gia in vigore|si conferma|sono confermate|confermati nel|adempimenti periodici|versamento periodico|liquidazione periodica|calendario ordinario|resta invariata|restano invariate/.test(
+      value
+    )
+  ) {
+    return true;
+  }
+  if (/aggiornamenti dal 20\d\d/.test(value) && /conferm/.test(value)) return true;
+  const namesAct = /risoluzione|circolare|provvedimento|decreto|messaggio|interpello|istituit|nuovi codici|nuovo codice/.test(value);
+  if (/versamento delle ritenute|ritenute operate|iva intracomunitaria|acquisti intracomunitari/.test(value) && !namesAct) return true;
+  if (/comunicazioni di irregolarita|avvisi bonari|sanzioni ridotte|rateizzazione fino a/.test(value) && !namesAct) return true;
+  return false;
+}
+
+export function fitArea(area, text, links = []) {
+  const value = normalize(text);
+  const inps = links.some((link) => /inps\.it/.test(link?.href || ""));
+  if (inps && /contribut|codice tributo|enti bilateral/.test(value)) return "Lavoro e ritenute";
+  if (/54 bis|633|dichiarazione iva|omessa dichiarazione/.test(value) && /iva|tributo/.test(value)) return "IVA";
+  return AREAS.includes(area) ? area : "Controlli";
+}
+
+export function actCodes(text) {
+  const found = new Set();
+  for (const match of String(text).matchAll(/[“"']([0-9]{4}|[0-9]{2}[A-Z]{2})[”"']|\bcodice tributo\s+([A-Z0-9]{3,5})\b/gi)) {
+    const code = (match[1] || match[2] || "").toUpperCase();
+    if (code && !/^20\d{2}$/.test(code)) found.add(code);
+  }
+  return [...found];
+}
+
+export function reviewDraft(report, documents = []) {
+  const notes = [];
+  const used = new Set();
+  for (const item of report?.items || []) {
+    const text = `${item.title} ${item.recap}`;
+    if (isRoutine(text)) notes.push(`Togli «${item.title}»: non è un atto nuovo.`);
+    const source = documents.find((document) =>
+      (item.links || []).some((link) => {
+        try {
+          return canonicalUrl(link.href) === canonicalUrl(document.href);
+        } catch {
+          return false;
+        }
+      })
+    );
+    if (!source) continue;
+    used.add(source.href);
+    for (const code of actCodes(`${source.title} ${source.summary || ""}`)) {
+      if (!text.toUpperCase().includes(code)) notes.push(`Nella scheda «${item.title}» manca il codice ${code}.`);
+    }
+    if (/interpello|risposta n/i.test(source.title) && /istante ritiene|ritiene di non rientrare/i.test(text)) {
+      notes.push(`Nella scheda «${item.title}» c'è la tesi dell'istante, non la conclusione dell'Agenzia.`);
+    }
+    const sourceText = `${source.title} ${source.summary || ""}`;
+    if (/9005/.test(sourceText) && /imposta/i.test(sourceText) && /interessi/i.test(sourceText) && /sanzioni/i.test(sourceText)) {
+      if (!/9005/.test(text) || !/imposta/i.test(text) || !/interessi/i.test(text) || !/sanzioni/i.test(text)) {
+        notes.push(`Nella scheda «${item.title}» distingui i codici: 9005 è l'importo complessivo, gli altri sono imposta, interessi e sanzioni.`);
+      }
+    }
+  }
+  for (const document of documents) {
+    const codes = actCodes(`${document.title} ${document.summary || ""}`);
+    if (used.has(document.href)) continue;
+    if (/interpello|risposta n/i.test(document.title)) {
+      notes.push("Manca la conclusione dell'interpello: scrivi se l'adempimento c'è o non c'è, e solo per il caso descritto.");
+      continue;
+    }
+    if (!codes.length) continue;
+    notes.push(`Manca una scheda con i codici ${codes.join(", ")}.`);
+  }
+  return notes;
+}
+
+export function fitAudience(audience, text) {
+  const value = normalize(text);
+  if (/\b(sanilav|ebicon|ebon|sanl)\b|ente bilaterale/.test(value)) return "Per lo studio";
+  return AUDIENCES.includes(audience) ? audience : "Per lo studio e per i clienti";
+}
+
 export function needsAnotherPass(archive, now = new Date()) {
   const latest = archive?.briefings?.[0];
   if (!latest) return false;
@@ -212,7 +298,8 @@ export function buildReport(raw, { known, knownHrefs, seen, sources: checked, no
         continue;
       }
       const recap = clean(item?.recap, 700);
-      if (!isCurrent(`${title} ${recap}`, now)) continue;
+      const reading = `${title} ${recap}`;
+      if (!isCurrent(reading, now) || isRoutine(reading)) continue;
       const links = linksFrom(item?.links, seen);
       if (!links.length) continue;
       if (links.some((link) => knownHrefs?.has(canonicalUrl(link.href)))) {
@@ -220,19 +307,23 @@ export function buildReport(raw, { known, knownHrefs, seen, sources: checked, no
         continue;
       }
       seenTitles.add(key);
-      const area = AREAS.includes(item?.area) ? item.area : "Controlli";
-      const audience = AUDIENCES.includes(item?.audience) ? item.audience : "Per lo studio e per i clienti";
+      const area = fitArea(item?.area, reading, links);
+      const audience = fitAudience(item?.audience, reading);
+      const rilevanza = RELEVANCE.includes(item?.rilevanza) ? item.rilevanza : "media";
       items.push({
         id: `${dateId(today)}-${key.replace(/ /g, "-").slice(0, 48)}`,
         area,
         audience,
+        rilevanza,
         title,
         recap,
         links,
       });
-      if (items.length === 5) break;
     }
   }
+
+  items.sort((left, right) => RELEVANCE.indexOf(left.rilevanza) - RELEVANCE.indexOf(right.rilevanza));
+  items.splice(8);
 
   const provided = Array.isArray(checked) ? checked.filter((source) => source?.label && source?.href).slice(0, 8) : [];
   const sources = provided.length ? provided : linksFrom(parsed.sources);
@@ -251,10 +342,11 @@ export function buildReport(raw, { known, knownHrefs, seen, sources: checked, no
   if (!items.length) {
     report.recap =
       "Nessuna novità degli ultimi giorni. Le pagine trovate descrivono regole già in vigore, non fatti nuovi, oppure ripetono segnalazioni già uscite.";
-  } else if (!isCurrent(report.recap, now)) {
-    report.recap = items.map((item) => item.title).join(". ") + ".";
-  } else if (!report.recap) {
-    report.recap = "Ci sono segnalazioni nuove rispetto al controllo precedente.";
+  } else if (!report.recap || !isCurrent(report.recap, now) || isRoutine(report.recap)) {
+    report.recap =
+      items.length === 1
+        ? `${items[0].title}.`
+        : `${items.length} segnalazioni nuove: ${items.map((item) => item.title).join("; ")}.`;
   }
 
   if (omitted > 0) {
