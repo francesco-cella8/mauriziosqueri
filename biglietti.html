@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Biglietti da visita — Dott. Squeri Maurizio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@1,6..72,500&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --navy: #3c4c5a;
+        --ink: #243039;
+        --muted: #6a7380;
+        --gold: #d9cbb8;
+        --gold-deep: #6d5e4e;
+        --paper: #f4f1eb;
+        --sans: "Plus Jakarta Sans", "Avenir Next", "Segoe UI", sans-serif;
+        --serif: "Newsreader", "Iowan Old Style", Georgia, serif;
+        --zoom: 1.58;
+        --sheet: 0.34;
+      }
+
+      * { box-sizing: border-box; }
+
+      html, body { margin: 0; }
+
+      body {
+        background: #e6e0d6;
+        color: var(--ink);
+        font-family: var(--sans);
+        font-size: 16px;
+        line-height: 1.5;
+      }
+
+      .screen {
+        width: min(1040px, calc(100% - 2rem));
+        margin: 0 auto;
+        padding: 2.4rem 0 3.2rem;
+      }
+
+      .kicker {
+        margin: 0 0 0.35rem;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--gold-deep);
+      }
+
+      h1 {
+        margin: 0;
+        font-family: var(--serif);
+        font-style: italic;
+        font-weight: 500;
+        font-size: clamp(2.2rem, 4vw, 3.1rem);
+        letter-spacing: -0.03em;
+        line-height: 1;
+      }
+
+      .dek {
+        max-width: 38rem;
+        margin: 0.85rem 0 0;
+        color: #4d5862;
+      }
+
+      .print-btn {
+        margin-top: 1.15rem;
+        appearance: none;
+        border: 0;
+        background: var(--navy);
+        color: #f6f3ee;
+        font: inherit;
+        font-weight: 600;
+        font-size: 0.95rem;
+        padding: 0.75rem 1.15rem;
+        border-radius: 999px;
+        cursor: pointer;
+      }
+
+      .print-btn:hover { background: #32414d; }
+
+      .stage {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 2.2rem 2.6rem;
+        justify-content: center;
+        margin: 2.4rem 0 0;
+      }
+
+      .slot { width: calc(85mm * var(--zoom)); }
+
+      .slot > p {
+        margin: 0 0 0.55rem;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .slot-frame {
+        width: 85mm;
+        height: 55mm;
+        transform: scale(var(--zoom));
+        transform-origin: top left;
+      }
+
+      .slot { height: calc(55mm * var(--zoom) + 1.5rem); }
+
+      .slot .card {
+        box-shadow: 0 18px 44px rgba(36, 48, 57, 0.16);
+      }
+
+      .howto {
+        margin-top: 2.6rem;
+        padding-top: 1.4rem;
+        border-top: 1px solid rgba(36, 48, 57, 0.12);
+      }
+
+      .howto h2 {
+        margin: 0 0 0.4rem;
+        font-size: 1.05rem;
+        font-weight: 700;
+      }
+
+      .howto ol {
+        margin: 0.4rem 0 0;
+        padding-left: 1.15rem;
+        color: #3d4850;
+      }
+
+      .howto li + li { margin-top: 0.25rem; }
+
+      .sheets-head {
+        margin: 2.4rem 0 0.8rem;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .sheets {
+        width: min(1040px, calc(100% - 2rem));
+        margin: 0 auto 3.2rem;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1.4rem;
+        align-items: start;
+      }
+
+      .sheet-label {
+        margin: 0 0 0.45rem;
+        font-size: 0.92rem;
+        font-weight: 600;
+      }
+
+      .sheet-frame {
+        width: calc(210mm * var(--sheet));
+        height: calc(297mm * var(--sheet));
+        overflow: hidden;
+        background: white;
+        box-shadow: 0 12px 32px rgba(36, 48, 57, 0.12);
+      }
+
+      .sheet {
+        width: 210mm;
+        height: 297mm;
+        position: relative;
+        background: white;
+        transform: scale(var(--sheet));
+        transform-origin: top left;
+      }
+
+      .grid {
+        position: absolute;
+        left: 20mm;
+        top: 11mm;
+        width: 170mm;
+        height: 275mm;
+        display: grid;
+        grid-template-columns: 85mm 85mm;
+        grid-template-rows: repeat(5, 55mm);
+      }
+
+      .sheet-back .grid { direction: rtl; }
+      .sheet-back .card { direction: ltr; }
+
+      .marks {
+        position: absolute;
+        inset: 0;
+        width: 210mm;
+        height: 297mm;
+        pointer-events: none;
+      }
+
+      .marks line {
+        stroke: #8a847c;
+        stroke-width: 0.18;
+      }
+
+      .card {
+        width: 85mm;
+        height: 55mm;
+        position: relative;
+        overflow: hidden;
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+
+      .front {
+        background: var(--paper);
+        color: var(--ink);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 4.6mm 6mm 4.2mm;
+      }
+
+      .front::after,
+      .back::after {
+        content: "";
+        position: absolute;
+        pointer-events: none;
+      }
+
+      .front::after {
+        inset: 2.5mm;
+        border: 0.2mm solid rgba(60, 76, 90, 0.28);
+      }
+
+      .back::after {
+        inset: 2.35mm;
+        border: 0.2mm solid rgba(217, 203, 184, 0.42);
+      }
+
+      .mark {
+        width: 13mm;
+        height: 13mm;
+        display: block;
+      }
+
+      .slogan {
+        margin: 2.15mm 0 0;
+        font-family: var(--serif);
+        font-style: italic;
+        font-weight: 500;
+        font-size: 5.05mm;
+        line-height: 0.96;
+        letter-spacing: -0.028em;
+        color: var(--ink);
+      }
+
+      .rule {
+        width: 8.5mm;
+        height: 0.22mm;
+        margin: 2mm 0 1.55mm;
+        background: var(--gold-deep);
+      }
+
+      .who {
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.7mm;
+      }
+
+      .who strong {
+        font-weight: 700;
+        font-size: 2.85mm;
+        letter-spacing: -0.015em;
+      }
+
+      .who span {
+        font-size: 2.05mm;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .where {
+        margin: 1.35mm 0 0;
+        font-size: 2.35mm;
+        font-weight: 500;
+        color: var(--navy);
+      }
+
+      .back {
+        background: var(--navy);
+        color: #f6f3ee;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 4.15mm 4.3mm 3.35mm;
+      }
+
+      .back-top {
+        display: flex;
+        gap: 3.3mm;
+        align-items: flex-start;
+      }
+
+      .qr-col {
+        width: 18.6mm;
+        flex: none;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1.05mm;
+      }
+
+      .qr {
+        width: 18.6mm;
+        height: 18.6mm;
+        background: #f6f3ee;
+        line-height: 0;
+      }
+
+      .qr svg {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+
+      .qr-col p {
+        margin: 0;
+        font-size: 2.15mm;
+        font-weight: 600;
+        letter-spacing: 0;
+        line-height: 1.1;
+        text-align: center;
+        white-space: nowrap;
+        color: var(--gold);
+      }
+
+      .eyebrow {
+        margin: 0.15mm 0 1.25mm;
+        font-size: 1.8mm;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--gold);
+      }
+
+      .svc-col ul {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .svc-col li {
+        display: flex;
+        align-items: center;
+        gap: 1.45mm;
+        font-size: 2.55mm;
+        font-weight: 500;
+        line-height: 1.15;
+        padding: 0.42mm 0;
+      }
+
+      .dot {
+        width: 0.95mm;
+        height: 0.95mm;
+        border-radius: 50%;
+        background: var(--gold);
+        flex: none;
+      }
+
+      .back-foot {
+        border-top: 0.18mm solid rgba(217, 203, 184, 0.45);
+        padding-top: 1.45mm;
+        display: grid;
+        gap: 0.42mm;
+      }
+
+      .back-foot p {
+        margin: 0;
+        display: flex;
+        justify-content: space-between;
+        gap: 2mm;
+        font-size: 2.3mm;
+        font-weight: 500;
+        line-height: 1.2;
+      }
+
+      .back-foot .mail {
+        color: var(--gold);
+        font-size: 2.15mm;
+      }
+
+      @media (max-width: 560px) {
+        :root { --zoom: 1; }
+      }
+
+      @page {
+        size: A4 portrait;
+        margin: 0;
+      }
+
+      @media print {
+        body { background: white; }
+        .screen, .sheet-label, .sheets-head { display: none !important; }
+        .sheets {
+          display: block;
+          width: auto;
+          margin: 0;
+        }
+        .sheet-frame {
+          width: 210mm;
+          height: 297mm;
+          overflow: hidden;
+          box-shadow: none;
+          break-after: page;
+          page-break-after: always;
+        }
+        .sheet-frame:last-child {
+          break-after: auto;
+          page-break-after: auto;
+        }
+        .sheet { transform: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Il codice sul retro apre https://studiosqueri.net -->
+    <svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute" aria-hidden="true">
+      <symbol id="qr-mark" viewBox="0 0 31 31"><rect width="31" height="31" fill="#f6f3ee"/><g fill="#243039"><rect x="1" y="1" width="7" height="1"/><rect x="9" y="1" width="1" height="1"/><rect x="11" y="1" width="2" height="1"/><rect x="15" y="1" width="3" height="1"/><rect x="20" y="1" width="1" height="1"/><rect x="23" y="1" width="7" height="1"/><rect x="1" y="2" width="1" height="1"/><rect x="7" y="2" width="1" height="1"/><rect x="9" y="2" width="2" height="1"/><rect x="12" y="2" width="1" height="1"/><rect x="15" y="2" width="1" height="1"/><rect x="18" y="2" width="2" height="1"/><rect x="21" y="2" width="1" height="1"/><rect x="23" y="2" width="1" height="1"/><rect x="29" y="2" width="1" height="1"/><rect x="1" y="3" width="1" height="1"/><rect x="3" y="3" width="3" height="1"/><rect x="7" y="3" width="1" height="1"/><rect x="11" y="3" width="2" height="1"/><rect x="14" y="3" width="2" height="1"/><rect x="17" y="3" width="2" height="1"/><rect x="21" y="3" width="1" height="1"/><rect x="23" y="3" width="1" height="1"/><rect x="25" y="3" width="3" height="1"/><rect x="29" y="3" width="1" height="1"/><rect x="1" y="4" width="1" height="1"/><rect x="3" y="4" width="3" height="1"/><rect x="7" y="4" width="1" height="1"/><rect x="9" y="4" width="2" height="1"/><rect x="12" y="4" width="1" height="1"/><rect x="19" y="4" width="3" height="1"/><rect x="23" y="4" width="1" height="1"/><rect x="25" y="4" width="3" height="1"/><rect x="29" y="4" width="1" height="1"/><rect x="1" y="5" width="1" height="1"/><rect x="3" y="5" width="3" height="1"/><rect x="7" y="5" width="1" height="1"/><rect x="9" y="5" width="2" height="1"/><rect x="12" y="5" width="1" height="1"/><rect x="17" y="5" width="1" height="1"/><rect x="19" y="5" width="1" height="1"/><rect x="23" y="5" width="1" height="1"/><rect x="25" y="5" width="3" height="1"/><rect x="29" y="5" width="1" height="1"/><rect x="1" y="6" width="1" height="1"/><rect x="7" y="6" width="1" height="1"/><rect x="9" y="6" width="3" height="1"/><rect x="13" y="6" width="2" height="1"/><rect x="17" y="6" width="1" height="1"/><rect x="19" y="6" width="3" height="1"/><rect x="23" y="6" width="1" height="1"/><rect x="29" y="6" width="1" height="1"/><rect x="1" y="7" width="7" height="1"/><rect x="9" y="7" width="1" height="1"/><rect x="11" y="7" width="1" height="1"/><rect x="13" y="7" width="1" height="1"/><rect x="15" y="7" width="1" height="1"/><rect x="17" y="7" width="1" height="1"/><rect x="19" y="7" width="1" height="1"/><rect x="21" y="7" width="1" height="1"/><rect x="23" y="7" width="7" height="1"/><rect x="10" y="8" width="1" height="1"/><rect x="12" y="8" width="2" height="1"/><rect x="16" y="8" width="3" height="1"/><rect x="21" y="8" width="1" height="1"/><rect x="4" y="9" width="1" height="1"/><rect x="7" y="9" width="1" height="1"/><rect x="13" y="9" width="1" height="1"/><rect x="18" y="9" width="2" height="1"/><rect x="24" y="9" width="3" height="1"/><rect x="28" y="9" width="2" height="1"/><rect x="1" y="10" width="1" height="1"/><rect x="3" y="10" width="2" height="1"/><rect x="6" y="10" width="1" height="1"/><rect x="9" y="10" width="1" height="1"/><rect x="17" y="10" width="1" height="1"/><rect x="21" y="10" width="1" height="1"/><rect x="23" y="10" width="1" height="1"/><rect x="27" y="10" width="1" height="1"/><rect x="29" y="10" width="1" height="1"/><rect x="1" y="11" width="3" height="1"/><rect x="5" y="11" width="3" height="1"/><rect x="10" y="11" width="2" height="1"/><rect x="14" y="11" width="1" height="1"/><rect x="16" y="11" width="2" height="1"/><rect x="20" y="11" width="2" height="1"/><rect x="23" y="11" width="3" height="1"/><rect x="28" y="11" width="1" height="1"/><rect x="1" y="12" width="1" height="1"/><rect x="3" y="12" width="1" height="1"/><rect x="10" y="12" width="2" height="1"/><rect x="15" y="12" width="2" height="1"/><rect x="18" y="12" width="1" height="1"/><rect x="22" y="12" width="3" height="1"/><rect x="27" y="12" width="2" height="1"/><rect x="2" y="13" width="6" height="1"/><rect x="12" y="13" width="1" height="1"/><rect x="14" y="13" width="3" height="1"/><rect x="19" y="13" width="2" height="1"/><rect x="23" y="13" width="2" height="1"/><rect x="26" y="13" width="1" height="1"/><rect x="4" y="14" width="2" height="1"/><rect x="8" y="14" width="1" height="1"/><rect x="11" y="14" width="2" height="1"/><rect x="15" y="14" width="1" height="1"/><rect x="18" y="14" width="1" height="1"/><rect x="20" y="14" width="3" height="1"/><rect x="24" y="14" width="1" height="1"/><rect x="26" y="14" width="1" height="1"/><rect x="28" y="14" width="1" height="1"/><rect x="2" y="15" width="1" height="1"/><rect x="7" y="15" width="1" height="1"/><rect x="10" y="15" width="1" height="1"/><rect x="13" y="15" width="4" height="1"/><rect x="18" y="15" width="1" height="1"/><rect x="21" y="15" width="1" height="1"/><rect x="23" y="15" width="1" height="1"/><rect x="28" y="15" width="2" height="1"/><rect x="1" y="16" width="4" height="1"/><rect x="6" y="16" width="1" height="1"/><rect x="8" y="16" width="3" height="1"/><rect x="12" y="16" width="2" height="1"/><rect x="15" y="16" width="3" height="1"/><rect x="22" y="16" width="3" height="1"/><rect x="2" y="17" width="3" height="1"/><rect x="7" y="17" width="1" height="1"/><rect x="9" y="17" width="4" height="1"/><rect x="14" y="17" width="3" height="1"/><rect x="20" y="17" width="3" height="1"/><rect x="29" y="17" width="1" height="1"/><rect x="3" y="18" width="1" height="1"/><rect x="8" y="18" width="2" height="1"/><rect x="14" y="18" width="6" height="1"/><rect x="22" y="18" width="3" height="1"/><rect x="26" y="18" width="4" height="1"/><rect x="1" y="19" width="1" height="1"/><rect x="4" y="19" width="1" height="1"/><rect x="7" y="19" width="1" height="1"/><rect x="10" y="19" width="2" height="1"/><rect x="13" y="19" width="2" height="1"/><rect x="19" y="19" width="1" height="1"/><rect x="21" y="19" width="2" height="1"/><rect x="24" y="19" width="3" height="1"/><rect x="28" y="19" width="2" height="1"/><rect x="4" y="20" width="2" height="1"/><rect x="9" y="20" width="1" height="1"/><rect x="11" y="20" width="2" height="1"/><rect x="17" y="20" width="5" height="1"/><rect x="26" y="20" width="1" height="1"/><rect x="28" y="20" width="2" height="1"/><rect x="1" y="21" width="1" height="1"/><rect x="3" y="21" width="1" height="1"/><rect x="6" y="21" width="3" height="1"/><rect x="10" y="21" width="1" height="1"/><rect x="13" y="21" width="4" height="1"/><rect x="18" y="21" width="10" height="1"/><rect x="9" y="22" width="3" height="1"/><rect x="17" y="22" width="1" height="1"/><rect x="19" y="22" width="1" height="1"/><rect x="21" y="22" width="1" height="1"/><rect x="25" y="22" width="1" height="1"/><rect x="28" y="22" width="2" height="1"/><rect x="1" y="23" width="7" height="1"/><rect x="11" y="23" width="2" height="1"/><rect x="14" y="23" width="1" height="1"/><rect x="17" y="23" width="3" height="1"/><rect x="21" y="23" width="1" height="1"/><rect x="23" y="23" width="1" height="1"/><rect x="25" y="23" width="4" height="1"/><rect x="1" y="24" width="1" height="1"/><rect x="7" y="24" width="1" height="1"/><rect x="11" y="24" width="2" height="1"/><rect x="18" y="24" width="1" height="1"/><rect x="21" y="24" width="1" height="1"/><rect x="25" y="24" width="1" height="1"/><rect x="27" y="24" width="2" height="1"/><rect x="1" y="25" width="1" height="1"/><rect x="3" y="25" width="3" height="1"/><rect x="7" y="25" width="1" height="1"/><rect x="10" y="25" width="2" height="1"/><rect x="16" y="25" width="2" height="1"/><rect x="19" y="25" width="1" height="1"/><rect x="21" y="25" width="6" height="1"/><rect x="28" y="25" width="2" height="1"/><rect x="1" y="26" width="1" height="1"/><rect x="3" y="26" width="3" height="1"/><rect x="7" y="26" width="1" height="1"/><rect x="9" y="26" width="1" height="1"/><rect x="11" y="26" width="1" height="1"/><rect x="13" y="26" width="1" height="1"/><rect x="15" y="26" width="2" height="1"/><rect x="19" y="26" width="5" height="1"/><rect x="25" y="26" width="1" height="1"/><rect x="29" y="26" width="1" height="1"/><rect x="1" y="27" width="1" height="1"/><rect x="3" y="27" width="3" height="1"/><rect x="7" y="27" width="1" height="1"/><rect x="11" y="27" width="2" height="1"/><rect x="17" y="27" width="1" height="1"/><rect x="19" y="27" width="3" height="1"/><rect x="25" y="27" width="2" height="1"/><rect x="29" y="27" width="1" height="1"/><rect x="1" y="28" width="1" height="1"/><rect x="7" y="28" width="1" height="1"/><rect x="12" y="28" width="2" height="1"/><rect x="15" y="28" width="2" height="1"/><rect x="20" y="28" width="5" height="1"/><rect x="28" y="28" width="1" height="1"/><rect x="1" y="29" width="7" height="1"/><rect x="14" y="29" width="1" height="1"/><rect x="16" y="29" width="1" height="1"/><rect x="18" y="29" width="1" height="1"/><rect x="20" y="29" width="3" height="1"/><rect x="25" y="29" width="1" height="1"/><rect x="28" y="29" width="1" height="1"/></g></symbol>
+    </svg>
+
+    <div class="screen">
+      <p class="kicker">Dott. Squeri Maurizio</p>
+      <h1>Biglietti da visita</h1>
+      <p class="dek">
+        Davanti, il marchio e lo slogan. Dietro, il codice del sito e i servizi in breve.
+        Ogni biglietto è 85 × 55 mm. Un foglio A4 ne porta dieci.
+      </p>
+      <button class="print-btn" type="button" id="print">Stampa i fogli</button>
+
+      <div class="stage">
+        <div class="slot">
+          <p>Fronte</p>
+          <div class="slot-frame" id="preview-front"></div>
+        </div>
+        <div class="slot">
+          <p>Retro</p>
+          <div class="slot-frame" id="preview-back"></div>
+        </div>
+      </div>
+
+      <div class="howto">
+        <h2>Come stamparli</h2>
+        <ol>
+          <li>Formato A4, verticale, margini nessuno. Disattiva intestazione e piè di pagina.</li>
+          <li>Attiva la stampa degli sfondi, altrimenti il retro esce bianco.</li>
+          <li>Fronte e retro, ribalta sul lato lungo. Il secondo foglio è già disposto per quel ribaltamento.</li>
+          <li>Taglia sui segni esterni. Il codice apre studiosqueri.net.</li>
+        </ol>
+      </div>
+
+      <p class="sheets-head">Fogli, in scala</p>
+    </div>
+
+    <div class="sheets">
+      <div>
+        <p class="sheet-label">Fronte · 10 biglietti</p>
+        <div class="sheet-frame">
+          <section class="sheet" aria-hidden="true">
+            <div class="grid" id="grid-front"></div>
+          </section>
+        </div>
+      </div>
+      <div>
+        <p class="sheet-label">Retro · ribaltato sul lato lungo</p>
+        <div class="sheet-frame">
+          <section class="sheet sheet-back" aria-hidden="true">
+            <div class="grid" id="grid-back"></div>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <template id="tpl-front">
+      <article class="card front">
+        <img
+          class="mark"
+          src="/logo.png"
+          alt=""
+          width="512"
+          height="512"
+          onerror="if(!this.dataset.tried){this.dataset.tried='1';this.src='public/logo.png'}"
+        />
+        <p class="slogan">Contabilità<br />e adempimenti.</p>
+        <span class="rule" aria-hidden="true"></span>
+        <p class="who">
+          <strong>Dott. Squeri Maurizio</strong>
+          <span>Studio tributario · A.N.CO.T.</span>
+        </p>
+        <p class="where">Santo Stefano d’Aveto · Chiavari</p>
+      </article>
+    </template>
+
+    <template id="tpl-back">
+      <article class="card back">
+        <div class="back-top">
+          <div class="qr-col">
+            <div class="qr">
+              <svg viewBox="0 0 31 31" role="img" aria-label="Codice per studiosqueri.net">
+                <use href="#qr-mark" />
+              </svg>
+            </div>
+            <p>studiosqueri.net</p>
+          </div>
+          <div class="svc-col">
+            <p class="eyebrow">Servizi</p>
+            <ul>
+              <li><span class="dot" aria-hidden="true"></span>Contabilità delle imprese</li>
+              <li><span class="dot" aria-hidden="true"></span>Locazioni e affitti</li>
+              <li><span class="dot" aria-hidden="true"></span>Pratiche camerali</li>
+              <li><span class="dot" aria-hidden="true"></span>Agricoltura e foreste</li>
+              <li><span class="dot" aria-hidden="true"></span>Appalti, portali e bandi</li>
+              <li><span class="dot" aria-hidden="true"></span>Dichiarazioni dei privati</li>
+            </ul>
+          </div>
+        </div>
+        <div class="back-foot">
+          <p><span>Santo Stefano d’Aveto</span><span>0185 1831882</span></p>
+          <p><span>Chiavari</span><span>0185 691423</span></p>
+          <p class="mail"><span>squeri.m@studiosqueri.com</span><span>WhatsApp 329 1525803</span></p>
+        </div>
+      </article>
+    </template>
+
+    <script>
+      const front = document.querySelector("#tpl-front");
+      const back = document.querySelector("#tpl-back");
+      const clone = (tpl) => tpl.content.firstElementChild.cloneNode(true);
+
+      document.querySelector("#preview-front").append(clone(front));
+      document.querySelector("#preview-back").append(clone(back));
+
+      const frontGrid = document.querySelector("#grid-front");
+      const backGrid = document.querySelector("#grid-back");
+      for (let i = 0; i < 10; i += 1) {
+        frontGrid.append(clone(front));
+        backGrid.append(clone(back));
+      }
+
+      const gap = 1.35;
+      const len = 3.4;
+      const xs = [20, 105, 190];
+      const ys = [11, 66, 121, 176, 231, 286];
+      const lines = [];
+      for (const y of ys) {
+        lines.push(`<line x1="${20 - gap - len}" y1="${y}" x2="${20 - gap}" y2="${y}"/>`);
+        lines.push(`<line x1="${190 + gap}" y1="${y}" x2="${190 + gap + len}" y2="${y}"/>`);
+      }
+      for (const x of xs) {
+        lines.push(`<line x1="${x}" y1="${11 - gap - len}" x2="${x}" y2="${11 - gap}"/>`);
+        lines.push(`<line x1="${x}" y1="${286 + gap}" x2="${x}" y2="${286 + gap + len}"/>`);
+      }
+      const marks = `<svg class="marks" viewBox="0 0 210 297" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${lines.join("")}</svg>`;
+      document.querySelectorAll(".sheet").forEach((sheet) => {
+        sheet.insertAdjacentHTML("beforeend", marks);
+      });
+
+      document.querySelector("#print").addEventListener("click", () => window.print());
+    </script>
+  </body>
+</html>

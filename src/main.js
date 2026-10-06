@@ -1,14 +1,19 @@
 import "./consent.js";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { mountBriefing } from "./briefing.js";
+import { santoCallsOpen } from "./santo-hours.js";
+
+if (document.querySelector("[data-briefing-stage]")) {
+  import("./briefing.js").then(({ mountBriefing }) => {
+    mountBriefing({ beforeOpen: closeMenu });
+  });
+}
 
 gsap.registerPlugin(ScrollTrigger);
 ScrollTrigger.config({ ignoreMobileResize: true });
 
 const STUDIO = {
   email: "squeri.m@studiosqueri.com",
-  phone: "329 152 5803",
 };
 
 const servizioLabel = {
@@ -34,12 +39,27 @@ const year = document.querySelector("#year");
 
 if (year) year.textContent = String(new Date().getFullYear());
 
-function onScroll() {
-  header?.classList.toggle("is-scrolled", window.scrollY > 8);
+function watchHeader() {
+  if (!header) return;
+  const mark = () => header.classList.toggle("is-scrolled", window.scrollY > 8);
+  if (!("IntersectionObserver" in window)) {
+    mark();
+    window.addEventListener("scroll", mark, { passive: true });
+    return;
+  }
+  const sentinel = document.createElement("div");
+  sentinel.setAttribute("aria-hidden", "true");
+  sentinel.style.cssText = "position:absolute;top:0;left:0;width:1px;height:9px;pointer-events:none;";
+  document.body.prepend(sentinel);
+  mark();
+  const observer = new IntersectionObserver(
+    ([entry]) => header.classList.toggle("is-scrolled", !entry.isIntersecting),
+    { threshold: 0 }
+  );
+  observer.observe(sentinel);
 }
 
-onScroll();
-window.addEventListener("scroll", onScroll, { passive: true });
+watchHeader();
 
 function motionOff() {
   return document.documentElement.classList.contains("reduce");
@@ -132,19 +152,90 @@ if (requested && serviceSelect?.querySelector(`option[value="${CSS.escape(reques
   serviceSelect.value = requested;
 }
 
+let chipFrame = 0;
+function syncChips() {
+  if (chipFrame) return;
+  chipFrame = requestAnimationFrame(() => {
+    chipFrame = 0;
+    const openId = document.querySelector("details.svc[open]")?.id || "";
+    document.querySelectorAll(".hero-chips a").forEach((chip) => {
+      const on = (chip.getAttribute("href") || "") === `#${openId}`;
+      chip.classList.toggle("is-active", on);
+      if (on) chip.setAttribute("aria-current", "location");
+      else chip.removeAttribute("aria-current");
+    });
+  });
+}
+
+let pickTimer = 0;
+function markPicked(node) {
+  document.querySelectorAll(".svc.is-picked").forEach((el) => el.classList.remove("is-picked"));
+  if (motionOff()) return;
+  node.classList.add("is-picked");
+  window.clearTimeout(pickTimer);
+  pickTimer = window.setTimeout(() => node.classList.remove("is-picked"), 1100);
+}
+
+function scrollToService(node, behavior) {
+  const offset = (header?.getBoundingClientRect().height || 0) + 12;
+  const top = node.getBoundingClientRect().top + window.scrollY - offset;
+  window.scrollTo({ top: Math.max(0, top), behavior: motionOff() ? "auto" : behavior });
+}
+
+let pickGen = 0;
+function showService(node, { scroll = false, pulse = false, focus = false, behavior = "smooth" } = {}) {
+  if (!(node instanceof HTMLDetailsElement)) return;
+  const gen = ++pickGen;
+  node.open = true;
+  syncChips();
+  const reveal = () => {
+    if (gen !== pickGen) return;
+    markPicked(node);
+  };
+  if (pulse) reveal();
+  if (!scroll && !focus) return;
+  requestAnimationFrame(() => {
+    if (gen !== pickGen) return;
+    if (scroll) scrollToService(node, behavior);
+    if (focus) node.querySelector("summary")?.focus({ preventScroll: true });
+    if (pulse && behavior === "smooth" && !motionOff()) {
+      window.addEventListener("scrollend", reveal, { once: true });
+    }
+  });
+}
+
+document.querySelectorAll("details.svc").forEach((node) => {
+  node.addEventListener("toggle", syncChips);
+});
+
 function openHashedService() {
   const id = decodeURIComponent(location.hash.replace(/^#/, ""));
   const node = id ? document.getElementById(id) : null;
-  if (node instanceof HTMLDetailsElement) node.open = true;
+  if (node instanceof HTMLDetailsElement) showService(node, { scroll: true, behavior: "auto" });
+  else syncChips();
 }
 
 openHashedService();
 window.addEventListener("hashchange", openHashedService);
+window.addEventListener("popstate", () => {
+  const id = decodeURIComponent(location.hash.replace(/^#/, ""));
+  const node = id ? document.getElementById(id) : null;
+  if (node instanceof HTMLDetailsElement) node.open = true;
+  syncChips();
+});
+
 document.querySelectorAll('a[href^="#"]').forEach((link) => {
-  link.addEventListener("click", () => {
+  link.addEventListener("click", (event) => {
     const id = decodeURIComponent((link.getAttribute("href") || "").slice(1));
     const node = id ? document.getElementById(id) : null;
-    if (node instanceof HTMLDetailsElement) node.open = true;
+    if (!(node instanceof HTMLDetailsElement)) return;
+    if (!link.closest(".hero-chips")) {
+      node.open = true;
+      return;
+    }
+    event.preventDefault();
+    if (location.hash !== `#${id}`) history.pushState({ ambiti: id }, "", `#${id}`);
+    showService(node, { scroll: true, pulse: true, focus: true, behavior: "smooth" });
   });
 });
 
@@ -159,8 +250,47 @@ function wireChannel(key, href, text) {
   block.hidden = false;
 }
 
-wireChannel("phone", (value) => `tel:+39${value.replace(/\s/g, "")}`, (value) => value);
 wireChannel("email", (value) => `mailto:${value}`, (value) => value);
+
+function mountSantoCallNotice() {
+  const dialog = document.createElement("dialog");
+  dialog.className = "consent-dialog hours-dialog";
+  dialog.setAttribute("aria-labelledby", "hours-title");
+  dialog.innerHTML = `
+    <div class="consent-dialog-panel">
+      <p class="consent-kicker">Santo Stefano d'Aveto</p>
+      <h2 id="hours-title" class="consent-title" tabindex="-1">Serve un appuntamento</h2>
+      <p class="consent-dialog-copy">L'ufficio risponde al telefono dal lunedì al venerdì, dalle 8:30 alle 12:30. Fuori da questi orari serve un appuntamento.</p>
+      <div class="consent-actions">
+        <a class="btn" href="/#contatti">Richiedi un appuntamento</a>
+        <button class="btn btn-ghost" type="button" data-hours-call>Chiama comunque</button>
+      </div>
+    </div>
+  `;
+  document.body.append(dialog);
+
+  const callAnyway = dialog.querySelector("[data-hours-call]");
+  dialog.querySelector('a[href="/#contatti"]')?.addEventListener("click", () => dialog.close());
+  callAnyway?.addEventListener("click", () => {
+    const href = dialog.dataset.href || "";
+    dialog.close();
+    if (href) window.location.href = href;
+  });
+  dialog.addEventListener("click", (event) => {
+    if (event.target === dialog) dialog.close();
+  });
+
+  document.addEventListener("click", (event) => {
+    const link = event.target.closest("a[data-santo-call]");
+    if (!(link instanceof HTMLAnchorElement) || santoCallsOpen()) return;
+    event.preventDefault();
+    dialog.dataset.href = link.href;
+    if (!dialog.open) dialog.showModal();
+    dialog.querySelector("#hours-title")?.focus();
+  });
+}
+
+mountSantoCallNotice();
 
 function setFieldError(field) {
   if (field.validity.valueMissing) {
@@ -265,6 +395,10 @@ function finishIntro(curtain) {
   curtain?.remove();
   gsap.set(".hero-reveal, .header", { clearProps: "all" });
   ScrollTrigger.refresh();
+  const id = decodeURIComponent(location.hash.replace(/^#/, ""));
+  const node = id ? document.getElementById(id) : null;
+  if (!(node instanceof HTMLDetailsElement)) return;
+  requestAnimationFrame(() => scrollToService(node, "auto"));
 }
 
 function playIntro() {
@@ -323,14 +457,27 @@ function fitRail() {
   rail.style.left = `${first.left + first.width / 2 - parent.left}px`;
 }
 
-fitRail();
-window.addEventListener("resize", fitRail);
-ScrollTrigger.addEventListener("refreshInit", fitRail);
-document.fonts?.ready?.then(fitRail);
+let railFrame = 0;
+function scheduleRail() {
+  if (railFrame) return;
+  railFrame = requestAnimationFrame(() => {
+    railFrame = 0;
+    fitRail();
+  });
+}
+
+if (document.querySelector(".timeline")) {
+  fitRail();
+  window.addEventListener("resize", scheduleRail);
+  ScrollTrigger.addEventListener("refreshInit", fitRail);
+  document.fonts?.ready?.then(fitRail);
+}
 
 const motion = gsap.matchMedia();
 
 motion.add("(prefers-reduced-motion: no-preference)", () => {
+  if (!document.querySelector(".hero, .timeline, .scene, .faq-list, [data-count]")) return;
+
   gsap.from(".bulletin-panel", {
     autoAlpha: 0,
     y: 36,
@@ -344,6 +491,7 @@ motion.add("(prefers-reduced-motion: no-preference)", () => {
   });
 
   const bar = document.querySelector(".progress span");
+  const setBar = bar ? gsap.quickSetter(bar, "scaleX") : null;
   const setShiftY = gsap.quickSetter(".marble-shift", "y", "px");
   let marbleRange = window.innerHeight * 0.1;
 
@@ -353,9 +501,10 @@ motion.add("(prefers-reduced-motion: no-preference)", () => {
     onRefresh(self) {
       marbleRange = window.innerHeight * 0.1;
       setShiftY(-marbleRange * self.progress);
+      if (setBar) setBar(self.progress);
     },
     onUpdate(self) {
-      if (bar) bar.style.transform = `scaleX(${self.progress})`;
+      if (setBar) setBar(self.progress);
       setShiftY(-marbleRange * self.progress);
     },
   });
@@ -545,8 +694,17 @@ function mountSatelliteMaps() {
 
     const tiles = new Map();
     let drag = null;
+    let paint = 0;
 
     function render() {
+      if (paint) return;
+      paint = requestAnimationFrame(() => {
+        paint = 0;
+        draw();
+      });
+    }
+
+    function draw() {
       const zoom = view.zoom;
       const size = frame.getBoundingClientRect();
       if (size.width < 2 || size.height < 2) return;
@@ -666,4 +824,3 @@ document.addEventListener("squeri-consent", (event) => {
 });
 
 applyMapConsent(Boolean(window.SqueriConsent?.read()?.maps));
-mountBriefing({ beforeOpen: closeMenu });

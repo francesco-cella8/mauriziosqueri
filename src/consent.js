@@ -44,7 +44,7 @@ function mountConsent() {
       </div>
       <div class="consent-actions">
         <button class="btn" type="button" data-consent="accept">Accetta</button>
-        <button class="btn consent-reject" type="button" data-consent="reject">Rifiuta</button>
+        <button class="btn" type="button" data-consent="reject">Rifiuta</button>
         <button class="consent-choose" type="button" data-consent="choose">Scegli nel dettaglio</button>
       </div>
       <p class="consent-links">

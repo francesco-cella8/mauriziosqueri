@@ -7,6 +7,9 @@
 # Form detection va lasciato attivo.
 # Notifica email: Forms → Submission notifications → squeri.m@studiosqueri.com
 # Il campo email del modulo diventa il Reply-To.
+# Le richieste restano 24 mesi. Poi dimentica-richieste cancella la copia su Netlify.
+# Su Netlify: Environment variables → NETLIFY_API_TOKEN
+# Token personale con accesso ai form. Ambito: Functions. Non committarlo.
 
 [build]
   command = "npm run build"
@@ -21,3 +24,23 @@
 
 [functions."scrivi-novita"]
   background = true
+
+[[headers]]
+  for = "/*.webp"
+  [headers.values]
+    Cache-Control = "public, max-age=2592000"
+
+[[headers]]
+  for = "/*.png"
+  [headers.values]
+    Cache-Control = "public, max-age=2592000"
+
+[[headers]]
+  for = "/*.ico"
+  [headers.values]
+    Cache-Control = "public, max-age=2592000"
+
+[[headers]]
+  for = "/*.svg"
+  [headers.values]
+    Cache-Control = "public, max-age=2592000"

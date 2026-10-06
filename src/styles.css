@@ -51,6 +51,7 @@ body.menu-open {
   pointer-events: none;
   overflow: hidden;
   isolation: isolate;
+  contain: paint;
   background:
     radial-gradient(42% 34% at 14% 16%, rgba(255, 255, 255, 0.85), transparent 70%),
     radial-gradient(36% 30% at 88% 10%, rgba(140, 155, 168, 0.28), transparent 68%),
@@ -786,6 +787,10 @@ html.has-consent-bar .wa {
   transform: rotate(45deg);
 }
 
+.hero-chip-nav {
+  width: 100%;
+}
+
 .hero-chips {
   display: flex;
   flex-wrap: wrap;
@@ -796,17 +801,39 @@ html.has-consent-bar .wa {
 }
 
 .hero-chips li {
+  display: flex;
+}
+
+.hero-chips a {
+  display: inline-flex;
+  align-items: center;
+  color: inherit;
+  text-decoration: none;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 1rem;
   padding: 0.75rem 0.95rem;
   font-weight: 700;
   font-size: 0.92rem;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease, transform 0.3s ease;
 }
 
-.hero-chips a {
-  color: inherit;
-  text-decoration: none;
+.hero-chips a:active {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(217, 203, 184, 0.7);
+}
+
+.hero-chips a.is-active,
+.hero-chips a.is-active:active {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: var(--navy);
+}
+
+.hero-chips a.is-active:focus-visible {
+  outline-color: white;
 }
 
 .services,
@@ -1019,6 +1046,18 @@ h2 em {
   border-radius: 1.25rem;
   background: white;
   box-shadow: 0 10px 28px rgba(50, 62, 74, 0.05);
+  outline: 2px solid transparent;
+  outline-offset: 4px;
+  contain: layout style;
+  transition: outline-color 0.45s ease;
+}
+
+.svc.is-picked {
+  outline-color: rgba(109, 94, 78, 0.9);
+}
+
+.service-group.is-focus .svc.is-picked {
+  outline-color: var(--gold);
 }
 
 .svc summary {
@@ -1545,6 +1584,11 @@ h2 em {
   content: "–";
 }
 
+.faq-list a {
+  color: var(--gold-deep);
+  font-weight: 700;
+}
+
 .faq-list details p {
   color: var(--muted);
   padding-bottom: 0.75rem;
@@ -1762,6 +1806,20 @@ h2 em {
   font-weight: 750;
   letter-spacing: -0.03em;
   line-height: 1.25;
+}
+
+.letterhead a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.place-hours {
+  margin-top: 0.45rem;
+  color: var(--muted);
+  font-size: 0.92rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.35;
 }
 
 .place-kicker {
@@ -2231,6 +2289,20 @@ h2 em {
   }
 }
 
+@media (hover: hover) {
+  .hero-chips a:hover {
+    background: rgba(255, 255, 255, 0.14);
+    border-color: rgba(217, 203, 184, 0.85);
+    color: var(--gold);
+  }
+
+  .hero-chips a.is-active:hover {
+    background: #f3efe8;
+    border-color: #f3efe8;
+    color: var(--navy);
+  }
+}
+
 @media (hover: hover) and (prefers-reduced-motion: no-preference) {
   .btn:hover,
   .wa:hover {
@@ -2239,6 +2311,14 @@ h2 em {
   }
 
   .btn:active {
+    transform: translateY(0);
+  }
+
+  .hero-chips a:hover {
+    transform: translateY(-2px);
+  }
+
+  .hero-chips a:active {
     transform: translateY(0);
   }
 
@@ -2251,10 +2331,6 @@ h2 em {
 @media (prefers-reduced-motion: no-preference) {
   .hero-glow::after {
     animation: ring-breathe 16s ease-in-out infinite alternate;
-  }
-
-  .marble-shift {
-    will-change: transform;
   }
 }
 
@@ -2274,6 +2350,7 @@ h2 em {
   }
 
   .svc,
+  .hero-chips a,
   .header,
   .btn,
   .step,
@@ -3069,12 +3146,6 @@ html.has-consent-bar body {
   box-shadow: none;
 }
 
-.consent-bar .consent-reject {
-  background: transparent;
-  color: white;
-  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.72);
-}
-
 .consent-choose,
 .consent-dismiss {
   border: 0;
@@ -3117,6 +3188,16 @@ html.has-consent-bar body {
   padding: 0;
   border: 0;
   background: transparent;
+}
+
+.hours-dialog .consent-actions {
+  flex-direction: column;
+}
+
+.hours-dialog .consent-actions .btn {
+  flex: none;
+  width: 100%;
+  white-space: nowrap;
 }
 
 .consent-dialog::backdrop {

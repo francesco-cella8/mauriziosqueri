@@ -14,6 +14,7 @@
     <link rel="icon" href="/favicon.png" type="image/png" sizes="192x192" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <script src="/consent-boot.js"></script>
+    <link rel="preload" as="image" href="/logo-mark.webp" type="image/webp" fetchpriority="high" />
     <link rel="stylesheet" href="/src/styles.css" />
     <script type="application/ld+json">
       {
@@ -43,7 +44,7 @@
         "vatID": "IT01607610993",
         "taxID": "SQRMRZ80M26C621Y",
         "email": "squeri.m@studiosqueri.com",
-        "telephone": "+39-329-152-5803",
+        "telephone": ["+39-0185-1831882", "+39-0185-691423"],
         "areaServed": [
           {
             "@type": "AdministrativeArea",
@@ -130,7 +131,7 @@
     <div class="curtain" aria-hidden="true">
       <div class="curtain-ring" aria-hidden="true"><span></span></div>
       <div class="curtain-card">
-        <img class="curtain-mark" src="/logo.png" alt="" width="74" height="74" />
+        <img class="curtain-mark" src="/logo-mark.webp" alt="" width="74" height="74" fetchpriority="high" />
         <p class="curtain-kicker">Studio tributario</p>
         <p class="curtain-word">Squeri</p>
         <p class="curtain-name">Dott. Maurizio</p>
@@ -141,7 +142,7 @@
 
     <header class="header">
       <a class="wordmark" href="#inizio">
-        <img class="wordmark-mark" src="/logo.png" alt="" width="40" height="40" />
+        <img class="wordmark-mark" src="/logo-mark.webp" alt="" width="40" height="40" decoding="async" />
         <span>
           <strong>Dott. Squeri Maurizio</strong>
           <small>Studio tributario</small>
@@ -197,24 +198,26 @@
           <ul class="hero-points hero-reveal">
             <li>
               <span class="check" aria-hidden="true"></span>
-              <span><strong>Qualificato A.N.CO.T.</strong> n. 4252</span>
+              <span><strong>Qualificato A.N.CO.T.</strong> n. 4252, legge 4/2013</span>
             </li>
             <li>
               <span class="check" aria-hidden="true"></span>
-              <span><strong>Certificato Kiwa</strong> n. 0534_trib</span>
+              <span><strong>Certificato Kiwa</strong> UNI 11511:2013, n. 0534_trib</span>
             </li>
           </ul>
-          <ul class="hero-chips hero-reveal">
-            <li><a href="#contabilita">Contabilità</a></li>
-            <li><a href="#locazioni">Locazioni</a></li>
-            <li><a href="#camerali">Camerali</a></li>
-            <li><a href="#agricoltura">Agricoltura</a></li>
-            <li><a href="#forestale">Forestale</a></li>
-            <li><a href="#appalti">Appalti</a></li>
-            <li><a href="#portali">Portali</a></li>
-            <li><a href="#bandi">Bandi</a></li>
-            <li><a href="#privati">Privati</a></li>
-          </ul>
+          <nav class="hero-chip-nav" aria-label="Ambiti">
+            <ul class="hero-chips hero-reveal">
+              <li><a href="#contabilita">Contabilità</a></li>
+              <li><a href="#locazioni">Locazioni</a></li>
+              <li><a href="#camerali">Camerali</a></li>
+              <li><a href="#agricoltura">Agricoltura</a></li>
+              <li><a href="#forestale">Forestale</a></li>
+              <li><a href="#appalti">Appalti</a></li>
+              <li><a href="#portali">Portali</a></li>
+              <li><a href="#bandi">Bandi</a></li>
+              <li><a href="#privati">Privati</a></li>
+            </ul>
+          </nav>
         </div>
       </section>
 
@@ -608,7 +611,7 @@
             <p class="eyebrow">Lo studio</p>
             <h2>In studio a Santo Stefano d'Aveto<br /><em>e a Chiavari.</em></h2>
             <p class="dek">
-              Dott. Maurizio Squeri, tributarista qualificato A.N.CO.T. e certificato Kiwa.
+              Dott. Maurizio Squeri, tributarista qualificato A.N.CO.T. ai sensi della legge 4/2013 e certificato Kiwa secondo la norma UNI 11511:2013.
               Segue contabilità e assistenza fiscale delle imprese, aziende agricole
               e forestali, contratti di locazione, pratiche camerali, appalti,
               portali, bandi regionali e dichiarazioni dei privati.
@@ -620,6 +623,8 @@
                 <span>Via Emanuele Razzetti 16/10</span>
                 <span>16049 Santo Stefano d'Aveto</span>
                 <span>Genova</span>
+                <a href="tel:+3901851831882" data-santo-call>0185 1831882</a>
+                <span class="place-hours">Lun–ven 8:30–12:30, per le chiamate, oppure su appuntamento.</span>
               </address>
               <address class="letterhead">
                 <span class="place-kicker">Sede operativa</span>
@@ -627,6 +632,7 @@
                 <span>Vico Oneto 6</span>
                 <span>16043 Chiavari</span>
                 <span>Genova</span>
+                <a href="tel:+390185691423">0185 691423</a>
               </address>
             </div>
             <dl class="ids">
@@ -639,10 +645,6 @@
                 <dd>SQRMRZ80M26C621Y</dd>
               </div>
             </dl>
-            <p class="channel" data-channel="phone" hidden>
-              <span>Telefono</span>
-              <a id="phoneLink" href=""></a>
-            </p>
             <p class="channel" data-channel="email" hidden>
               <span>Email</span>
               <a id="emailLink" href=""></a>
@@ -721,7 +723,7 @@
               <p class="eyebrow">Richiesta</p>
               <h2>Invia <em>una richiesta.</em></h2>
               <p class="contact-note">
-                La richiesta arriva allo studio. I dati servono a risponderti.
+                La richiesta passa da Netlify, anche negli Stati Uniti, e arriva allo studio. I dati servono a risponderti.
                 <a href="/privacy.html">Informativa privacy</a>.
               </p>
             </div>
@@ -967,12 +969,12 @@
             <li>
               <p class="cred-value" data-count="4252">4252</p>
               <p class="cred-label">A.N.CO.T.</p>
-              <p>Tributarista qualificato, n. 4252.</p>
+              <p>Tributarista qualificato, n. 4252. Professione non organizzata in ordini o collegi, legge 4/2013.</p>
             </li>
             <li>
               <p class="cred-value">0534<span>_trib</span></p>
               <p class="cred-label">Kiwa</p>
-              <p>Certificato n. 0534_trib.</p>
+              <p>Certificato n. 0534_trib, norma UNI 11511:2013.</p>
             </li>
             <li>
               <p class="cred-value cred-value-small">69.20.06</p>
@@ -1005,7 +1007,7 @@
             </details>
             <details>
               <summary>Dove si riceve?</summary>
-              <p>A Santo Stefano d'Aveto, in Via Emanuele Razzetti 16/10, e a Chiavari, sede operativa, in Vico Oneto 6. Si può scrivere a squeri.m@studiosqueri.com, chiamare il 329 152 5803 o inviare la richiesta dal modulo.</p>
+              <p>A Santo Stefano d'Aveto, in Via Emanuele Razzetti 16/10, e a Chiavari, sede operativa, in Vico Oneto 6. A Santo Stefano le chiamate si ricevono dal lunedì al venerdì, dalle 8:30 alle 12:30; fuori da questi orari serve un appuntamento. Si può scrivere a <a href="mailto:squeri.m@studiosqueri.com">squeri.m@studiosqueri.com</a>, chiamare lo <a href="tel:+3901851831882" data-santo-call>0185 1831882</a> o lo <a href="tel:+390185691423">0185 691423</a>, oppure inviare la richiesta dal modulo.</p>
             </details>
           </div>
         </div>
@@ -1014,7 +1016,7 @@
 
     <footer class="footer">
       <div class="wrap footer-grid">
-        <p><strong>Dott. Squeri Maurizio</strong><br />Santo Stefano d'Aveto<br />Chiavari, sede operativa<br /><a href="mailto:squeri.m@studiosqueri.com">squeri.m@studiosqueri.com</a><br /><a href="tel:+393291525803">329 152 5803</a></p>
+        <p><strong>Dott. Squeri Maurizio</strong><br />Santo Stefano d'Aveto · <a href="tel:+3901851831882" data-santo-call>0185 1831882</a><br />Lun–ven 8:30–12:30, per le chiamate, oppure su appuntamento<br />Chiavari, sede operativa · <a href="tel:+390185691423">0185 691423</a><br /><a href="mailto:squeri.m@studiosqueri.com">squeri.m@studiosqueri.com</a></p>
         <p>P. IVA 01607610993<br />C.F. SQRMRZ80M26C621Y</p>
         <p>ATECO 69.20.06<br />A.N.CO.T. n. 4252</p>
         <span class="footer-actions">
