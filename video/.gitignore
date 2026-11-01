@@ -1,0 +1,4 @@
+# Clip, fotogrammi e audio intermedi: si rigenerano con build.sh
+.cache/
+node_modules/
+__pycache__/

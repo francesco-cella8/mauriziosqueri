@@ -1,0 +1,14 @@
+{
+  "name": "studio-squeri-video",
+  "private": true,
+  "type": "module",
+  "description": "Video di presentazione del sito: registrazione del sito, composizione animata, musica originale.",
+  "scripts": {
+    "record": "node capture/record.mjs",
+    "stills": "node capture/stills.mjs",
+    "build": "bash build.sh"
+  },
+  "devDependencies": {
+    "playwright": "^1.50.0"
+  }
+}
